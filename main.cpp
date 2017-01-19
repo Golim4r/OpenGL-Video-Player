@@ -34,6 +34,28 @@ int               numBytes;
 uint8_t           *buffer = NULL;
 struct SwsContext *sws_ctx = NULL;
 
+class Buffered_frame {
+public:
+	AVPacket packet;
+	AVFrame* pFrame;
+	AVFrame* pFrameRGB;
+
+	Buffered_frame() {
+		pFrame = av_frame_alloc();
+		pFrameRGB = av_frame_alloc();
+	}
+
+	~Buffered_frame() {
+		av_frame_free(&pFrame);
+		av_frame_free(&pFrameRGB);
+	}
+
+	void init() {
+		avpicture_fill((AVPicture *)pFrame, buffer, PIX_FMT_RGB24, pCodecCtx->width, pCodecCtx->height);
+		avpicture_fill((AVPicture *)pFrameRGB, buffer, PIX_FMT_RGB24, pCodecCtx->width, pCodecCtx->height);
+	}
+};
+
 const GLchar* vertexSource =
     "#version 150 core\n"
     "in vec2 position;"
@@ -61,17 +83,17 @@ const GLchar* fragmentSource =
 const int BUFFERED_FRAMES_COUNT = 120;
 const int WINDOW_COUNT = 5;
 
-
 std::vector<AVFrame*> buffered_av_frames(BUFFERED_FRAMES_COUNT);
+std::vector<Buffered_frame> buffered_frames(BUFFERED_FRAMES_COUNT);
 std::vector<std::atomic<bool>> written(BUFFERED_FRAMES_COUNT); // true, if ready to read, false if ready to write
-std::atomic<bool> terminated;
+std::atomic<bool> terminated, ready_to_render;
 
 GLfloat vertices[] = {
 //  Position      Color             Texcoords
     -1.0f,  1.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, // Top-left
-     2.0f,  1.0f, 0.0f, 1.0f, 0.0f, 1.0f, 0.0f, // Top-right
-     2.0f, -2.0f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f, // Bottom-right
-    -1.0f, -2.0f, 1.0f, 1.0f, 1.0f, 0.0f, 1.0f  // Bottom-left
+     1.0f,  1.0f, 0.0f, 1.0f, 0.0f, 0.5f, 0.0f, // Top-right
+     1.0f, -1.0f, 0.0f, 0.0f, 1.0f, 0.5f, 0.5f, // Bottom-right
+    -1.0f, -1.0f, 1.0f, 1.0f, 1.0f, 0.0f, 0.5f  // Bottom-left
 };
 
 GLuint elements[] = {
@@ -129,6 +151,35 @@ void SaveFrame(AVFrame *pFrame, int width, int height, int iFrame) {
   fclose(pFile);
 }
 
+bool buffer_frame(int i) {
+	bool frameComplete = false;
+	if(av_read_frame(pFormatCtx, &buffered_frames[i].packet)>=0) {
+		// Is this a packet from the video stream?
+		if(buffered_frames[i].packet.stream_index==videoStream) {
+			// Decode video frame
+			avcodec_decode_video2(pCodecCtx, buffered_frames[i].pFrame, &frameFinished, &buffered_frames[i].packet);
+	
+			// Did we get a video frame?
+			if(frameFinished) {
+				// Convert the image from its native format to RGB
+				sws_scale(	sws_ctx, (uint8_t const * const *)buffered_frames[i].pFrame->data,
+							buffered_frames[i].pFrame->linesize, 0, pCodecCtx->height,
+							buffered_frames[i].pFrameRGB->data, buffered_frames[i].pFrameRGB->linesize);
+				frameComplete = true;
+				//std::cout << "wrote frame " << i << '\n';
+			} else {
+				//std::cout << "no finished frame" << std::endl;
+			}
+		} else {
+			//std::cout << "not a video packet" << std::endl;
+		}
+		// Free the packet that was allocated by av_read_frame
+		av_free_packet(&buffered_frames[i].packet);
+	}
+	return frameComplete;
+}
+
+
 bool get_frames_into_av_buffer(int i) {
 	bool frameComplete = false;
 	if(av_read_frame(pFormatCtx, &packet)>=0) {
@@ -144,6 +195,7 @@ bool get_frames_into_av_buffer(int i) {
 							pFrame->linesize, 0, pCodecCtx->height,
 							buffered_av_frames[i]->data, buffered_av_frames[i]->linesize);
 				frameComplete = true;
+				//std::cout << "wrote frame " << i << '\n';
 			} else {
 				//std::cout << "no finished frame" << std::endl;
 			}
@@ -225,7 +277,8 @@ void createWindow() {
 
 	//set pixels array as texture
 	while(!written[0]) {} //wait for the first frame to be buffered
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, pCodecCtx->width, pCodecCtx->height, 0, GL_RGB, GL_UNSIGNED_BYTE, buffered_av_frames[0]->data[0]);
+	SaveFrame(buffered_frames[0].pFrameRGB, pCodecCtx->width, pCodecCtx->height, 0+win_ids.size());
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, pCodecCtx->width, pCodecCtx->height, 0, GL_RGB, GL_UNSIGNED_BYTE, buffered_frames[0].pFrameRGB->data[0]);
 
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
@@ -320,22 +373,20 @@ int initFFMPEG(int argc, char* argv[]) {
 			return -1;
 		}
 		avpicture_fill((AVPicture *)buffered_av_frames[i], buffer, PIX_FMT_RGB24, pCodecCtx->width, pCodecCtx->height);
+		buffered_frames[i].init();
 	}
 	terminated = false;
 	int currentFrame = 0;
-
+	
 	//start buffering the frames:
 	while(!terminated) {
 		//std::this_thread::sleep_for(std::chrono::seconds(1));
 		if (!written[currentFrame]) {
-			//if (getFrame()) {
-			if (get_frames_into_av_buffer(currentFrame)) {
+			//if (get_frames_into_av_buffer(currentFrame)) {
+			if (buffer_frame(currentFrame)) {
 				++frameswritten;
-				if (0 == currentFrame) { std::cout << "beschreibe den ersten frame" << std::endl; }
-				//std::cout << "writing frame " << currentFrame << std::endl;
-				//for (int j=0; j<pFrameRGB->linesize[0]*pCodecCtx->height; ++j) {
-				//	buffered_frames[currentFrame][j] = std::move(pFrameRGB->data[0][j]);
-				//}
+				//SaveFrame(buffered_av_frames[currentFrame], pCodecCtx->width, pCodecCtx->height, currentFrame*10+7);
+				std::cout << "writing frame " << currentFrame << std::endl;
 				written[currentFrame] = true;
 				++currentFrame;
 				currentFrame = currentFrame%BUFFERED_FRAMES_COUNT;
@@ -343,6 +394,8 @@ int initFFMPEG(int argc, char* argv[]) {
 		} else {
 			//std::cout << "frame " << currentFrame << " is not read yet" << std::endl;
 		}
+		//if (currentFrame > 100) {terminated = true;}
+		//terminated = true;
 		//std::chrono::duration<double> elapsed_seconds = ct2-ct1;
 		//std::cout << "elapsed time:" << elapsed_seconds.count() << std::endl;
 	}
@@ -406,24 +459,26 @@ int winid = 0;
 void displayCB(void)		// function called whenever redisplay needed
 {
 	//std::cout << "display 1" << std::endl;
-	//std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+	std::this_thread::sleep_for(std::chrono::milliseconds(1000));
 	if (written[nextFrame]) {
 		std::cout << "reading frame " << nextFrame << std::endl;
-		
+		//TODO TIMED EVENT
 		//rt1 = std::chrono::system_clock::now();
 		++framesread;
 		
-		//SaveFrame(&buffered_frames[nextFrame], pCodecCtx->width, pCodecCtx->height, nextFrame);
+		//SaveFrame(buffered_av_frames[nextFrame], pCodecCtx->width, pCodecCtx->height, nextFrame*10+8);
 		for (int i=0; i<WINDOW_COUNT; ++i) {
 			glutSetWindow(win_ids[i]);
 			glFlush();
-			glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, pCodecCtx->width, pCodecCtx->height, GL_RGB, GL_UNSIGNED_BYTE, buffered_av_frames[nextFrame]->data[0]);
+			//glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, pCodecCtx->width, pCodecCtx->height, GL_RGB, GL_UNSIGNED_BYTE, buffered_av_frames[nextFrame]->data[0]);
+			glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, pCodecCtx->width, pCodecCtx->height, GL_RGB, GL_UNSIGNED_BYTE, buffered_frames[nextFrame].pFrameRGB->data[0]);
 			glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 			glutSwapBuffers();
 		}
 		
 		written[nextFrame] = false;
 		++nextFrame;
+		//if (nextFrame > 100) { glutLeaveMainLoop(); }
 		nextFrame = nextFrame%BUFFERED_FRAMES_COUNT;
 		//rt2 = std::chrono::system_clock::now();
 		//std::cout << "waited " << notreadycount << " rounds for this frame" << std::endl;
@@ -445,7 +500,6 @@ void keyCB(unsigned char key, int x, int y)	/* called on key press */
 
 int main(int argc, char *argv[]) {
 	glutInit(&argc, argv);		// initialize GLUT system
-	written[0] = false;
 	std::cout << "start!" << std::endl;
 	std::thread coder(initFFMPEG, argc, argv);
 	//std::this_thread::sleep_for(std::chrono::seconds(1));
