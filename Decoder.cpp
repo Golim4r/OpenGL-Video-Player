@@ -69,7 +69,14 @@ Decoder::Decoder(std::string filename) {
     // initialize SWS context for software scaling
     sws_ctx = sws_getContext(	pCodecCtx->width, pCodecCtx->height, pCodecCtx->pix_fmt, pCodecCtx->width, pCodecCtx->height,
                   PIX_FMT_RGB24, SWS_BILINEAR, NULL, NULL, NULL);
-    //initialize things for buffering
+    
+    //initialize the buffer vector
+    
+    buffered_frames.resize(BUFFERED_FRAMES_COUNT);
+    std::for_each(buffered_frames.begin(), buffered_frames.end(), [=](std::vector<uint8_t> &v) { v.resize(numBytes); });
+    
+    std::cout << "numbytes: " << numBytes << '\n';
+    std::cout << "buffered_frames[0].size(): " << buffered_frames[0].size() << '\n';
     
   } catch (int e) {
     std::vector<std::string> error_strings = 
@@ -101,14 +108,20 @@ Decoder::~Decoder() {
  }
  
 void Decoder::run() {
-  for (int i=0; i<20; ++i) {
-    while (!buffer_frame()) { }
-    SaveFrame(i);
-    //buffer and pFrameRGB->data[0] are the same
+  std::cout << "Decoder trying to run!\n";
+  for (int i=0; i<BUFFERED_FRAMES_COUNT; ++i) {
+    while (!read_frame()) { }
+    //SaveFrame(i);
+    
+    //copy the read frame into buffered_frames
+    //std::memcpy(buffered_frames[i].data(), buffer, numBytes);
+    
+    
     //std::cout << "pFrameRGB[0]: " << &pFrameRGB->data[0][1] << '\n';
     //std::cout << "buffer: " << &buffer[1] << '\n';
     
   }
+  //std::this_thread::sleep_for(std::chrono::milliseconds(1000));
 }
  
 //void Decoder::SaveFrame(AVFrame *pFrame, int width, int height, int iFrame) {
@@ -135,14 +148,14 @@ void Decoder::SaveFrame(int iFrame) {
   fclose(pFile);
 }
  
-bool Decoder::buffer_frame() {
+bool Decoder::read_frame() {
   bool frameComplete = false;
   if(av_read_frame(pFormatCtx, &packet)>=0) {
     // Is this a packet from the video stream?
     if(packet.stream_index==videoStream) {
       // Decode video frame
       avcodec_decode_video2(pCodecCtx, pFrame, &frameFinished, &packet);
-  
+      
       // Did we get a video frame?
       if(frameFinished) {
         // Convert the image from its native format to RGB
@@ -150,7 +163,6 @@ bool Decoder::buffer_frame() {
               pFrame->linesize, 0, pCodecCtx->height,
               pFrameRGB->data,pFrameRGB->linesize);
         frameComplete = true;
-        //SaveFrame(0);
         //std::cout << "wrote frame " << i << '\n';
       } else {
         //std::cout << "no finished frame" << std::endl;
@@ -159,7 +171,20 @@ bool Decoder::buffer_frame() {
       //std::cout << "not a video packet" << std::endl;
     }
     // Free the packet that was allocated by av_read_frame
+    //av_packet_unref(&packet);
     av_free_packet(&packet);
   }
   return frameComplete;
+}
+
+uint8_t* Decoder::get_frame(){
+  return buffered_frames[0].data();
+}
+
+int Decoder::get_width() {
+  return pCodecCtx->width;
+}
+
+int Decoder::get_height() {
+  return pCodecCtx->height;
 }

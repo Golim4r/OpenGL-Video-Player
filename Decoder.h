@@ -11,11 +11,13 @@ extern "C"
 #endif
 
 #include <string>
+#include <cstring>
 #include <iostream>
 #include <vector>
+#include <algorithm>
+#include <thread>
 
-const int BUFFERED_FRAMES_COUNT = 120;
-const int WINDOW_COUNT = 5;
+#define BUFFERED_FRAMES_COUNT 120
 
 class Decoder {
 private:
@@ -32,18 +34,22 @@ private:
   uint8_t           *buffer = NULL;
   struct SwsContext *sws_ctx = NULL;
   
-  long frameswritten = 0;
-  bool terminated;
+  std::vector<std::vector<uint8_t>> buffered_frames;
   
-  //void SaveFrame(AVFrame *pFrame, int width, int height, int iFrame);
+  bool done;
+
   void SaveFrame(int iFrame);
-  bool buffer_frame();
+  bool read_frame();
+  
 public:
   Decoder() = delete;
   Decoder(std::string filename = "CarRace.mp4");
   ~Decoder();
   
   void run();
+  uint8_t* get_frame();
+  int get_width();
+  int get_height();
 };
 
 #endif

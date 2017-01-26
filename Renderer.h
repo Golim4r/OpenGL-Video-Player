@@ -8,32 +8,15 @@
 #include <GL/glut.h>
 #include <GL/freeglut.h>
 
-const GLchar* vertexSource =
-  "#version 150 core\n"
-  "in vec2 position;"
-  "in vec3 color;"
-  "in vec2 texcoord;"
-  "out vec3 Color;"
-  "out vec2 Texcoord;"
-  "void main()"
-  "{"
-  "    Color = color;"
-  "    Texcoord = texcoord;"
-  "    gl_Position = vec4(position, 0.0, 1.0);"
-  "}";
-const GLchar* fragmentSource =
-  "#version 150 core\n"
-  "in vec3 Color;"
-  "in vec2 Texcoord;"
-  "out vec4 outColor;"
-  "uniform sampler2D tex;"
-  "void main()"
-  "{"
-  "    outColor = texture(tex, Texcoord);"
-  "}";
+#include <thread>
+
+#include "Decoder.h"
 
 
 
+
+
+/*
 GLfloat vertices[] = {
 //  Position      Color             Texcoords
     -1.0f,  1.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, // Top-left
@@ -65,10 +48,36 @@ public:
 		glDeleteVertexArrays(1, &vao);
 	}
 };
+*/
+
+class GLWindow{
+private:
+  int _id, _video_width, _video_height;
+  GLuint vao, vbo, tex, ebo, vertexShader, fragmentShader, shaderProgram;
+	GLint posAttrib, colAttrib, texAttrib;
+  
+  //std::vector<GLfloat> vertices = {
+  /*GLfloat vertices[28] = {
+  //  Position      Color             Texcoords
+      -1.0f,  1.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, // Top-left
+       1.0f,  1.0f, 0.0f, 1.0f, 0.0f, 1.0f, 0.0f, // Top-right
+       1.0f, -1.0f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f, // Bottom-right
+      -1.0f, -1.0f, 1.0f, 1.0f, 1.0f, 0.0f, 1.0f  // Bottom-left
+  };
+  
+  GLuint elements[6] = {
+      0, 1, 2,
+      2, 3, 0
+  };*/
+  
+public:
+  GLWindow(int video_width, int video_height);
+  ~GLWindow();
+};
 
 class Renderer {
 private:
-  std::vector<int> win_ids;
+  /*std::vector<int> win_ids;
   std::vector<AVFrame*> buffered_av_frames(BUFFERED_FRAMES_COUNT);
   std::vector<Buffered_frame> buffered_frames(BUFFERED_FRAMES_COUNT);
   std::vector<std::atomic<bool>> written(BUFFERED_FRAMES_COUNT); // true, if ready to read, false if ready to write
@@ -83,13 +92,20 @@ private:
   int winid = 0;
   
   void createWindow();
-  void initGLUT();
-  void keyboard();
+  void initGLUT();*/
+  void keyboard(unsigned char key, int x, int y);
   void redraw();
+
+  std::vector<GLWindow> _windows;
+  
+  //Decoder& _dec;
 public:
-  Renderer() {
-    glutInit(&argc, argv);		// initialize GLUT system
-  }
+  Renderer(Decoder &dec);
+  //Renderer() {
+  //  glutInit(&argc, argv);		// initialize GLUT system
+  //}
+  void run();
+  Decoder& _dec;
 };
 
 #endif

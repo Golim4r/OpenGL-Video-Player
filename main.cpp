@@ -1,10 +1,23 @@
 #include <iostream>
+#include <thread>
+
+#include "Renderer.h"
 #include "Decoder.h"
-//#include "Renderer.h"
+#include "JUtils.h"
 
 
 int main(int argc, char *argv[]) {
-  Decoder d("diablo.mp4");
-  d.run();
+  Decoder d("CarRace.mp4");
+  Renderer r(d);
+  JDurationManager dm;
+  
+  dm.start();
+  std::thread dt(&Decoder::run, &d);
+  r.run();
+  dt.join();  
+  
+  dm.stop();
+  dm.print();
+  
 	return 0;
 }
