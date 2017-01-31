@@ -16,6 +16,9 @@ extern "C"
 #include <vector>
 #include <algorithm>
 #include <thread>
+#include <mutex>
+#include <condition_variable>
+#include <atomic>
 
 #define BUFFERED_FRAMES_COUNT 120
 
@@ -36,7 +39,10 @@ private:
   
   std::vector<std::vector<uint8_t>> buffered_frames;
   
-  bool done;
+  std::atomic<bool> done;
+  
+  std::atomic<int> current_frame_reading, current_frame_writing;
+  std::vector<std::atomic<bool>> written;
 
   void SaveFrame(int iFrame);
   bool read_frame();
@@ -47,7 +53,11 @@ public:
   ~Decoder();
   
   void run();
-  std::vector<uint8_t> get_frame();
+  void stop();
+  
+  uint8_t* get_frame();
+  void clear_frame_for_writing();
+  
   int get_width();
   int get_height();
 };

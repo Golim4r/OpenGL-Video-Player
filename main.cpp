@@ -7,15 +7,16 @@
 
 
 int main(int argc, char *argv[]) {
-  Decoder d("CarRace.mp4");
+  Decoder d("diablo.mp4");
+  
   Renderer r(d);
   JDurationManager dm;
   
   dm.start();
-  d.run();
-  //std::thread dt(&Decoder::run, &d);
+  //d.run();
+  std::thread dt(&Decoder::run, &d);
   r.run();
-  //dt.join();  
+  dt.join();  
   
   dm.stop();
   dm.print();

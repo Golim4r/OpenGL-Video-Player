@@ -1,6 +1,6 @@
 #include "Decoder.h"
 
-Decoder::Decoder(std::string filename) {
+Decoder::Decoder(std::string filename) : current_frame_reading(0), current_frame_writing(0), written(BUFFERED_FRAMES_COUNT) {
   try {
     std::cout << "opening file " << filename << std::endl;
     av_register_all();
@@ -71,13 +71,8 @@ Decoder::Decoder(std::string filename) {
                   PIX_FMT_RGB24, SWS_BILINEAR, NULL, NULL, NULL);
     
     //initialize the buffer vector
-    
     buffered_frames.resize(BUFFERED_FRAMES_COUNT);
-    std::for_each(buffered_frames.begin(), buffered_frames.end(), [=](std::vector<uint8_t> &v) { v.resize(numBytes); });
-    
-    std::cout << "numbytes: " << numBytes << '\n';
-    std::cout << "buffered_frames[0].size(): " << buffered_frames[0].size() << '\n';
-    
+    std::for_each(buffered_frames.begin(), buffered_frames.end(), [=](std::vector<uint8_t> &v) { v.resize(numBytes); });    
   } catch (int e) {
     std::vector<std::string> error_strings = 
     { "Error opening file\n",
@@ -109,19 +104,31 @@ Decoder::~Decoder() {
  
 void Decoder::run() {
   std::cout << "Decoder trying to run!\n";
-  for (int i=0; i<BUFFERED_FRAMES_COUNT; ++i) {
-    while (!read_frame()) { }
-    //SaveFrame(i);
-    
-    //copy the read frame into buffered_frames
-    //std::memcpy(buffered_frames[i].data(), buffer, numBytes);
-    
-    
-    //std::cout << "pFrameRGB[0]: " << &pFrameRGB->data[0][1] << '\n';
-    //std::cout << "buffer: " << &buffer[1] << '\n';
-    
+  done = false;
+  //for (int i=0; i<BUFFERED_FRAMES_COUNT; ++i) {
+  while(!done) {
+    for (int i=0; i<BUFFERED_FRAMES_COUNT; ++i) {
+      //wait for a completed frame
+      while (!read_frame()) {
+        if (done) break;
+      }
+      while (written[current_frame_writing]) {
+        if (done) break;
+      }
+      
+      //copy the read frame into buffered_frames
+      std::memcpy(buffered_frames[i].data(), buffer, numBytes);
+      written[current_frame_writing] = true;
+      current_frame_writing = (current_frame_writing + 1) % BUFFERED_FRAMES_COUNT;
+    }
   }
-  //std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+}
+
+void Decoder::stop() {
+  for (int i=0; i<BUFFERED_FRAMES_COUNT; ++i) {
+    written[i] = false;
+  }
+  done = true;
 }
  
 //void Decoder::SaveFrame(AVFrame *pFrame, int width, int height, int iFrame) {
@@ -171,16 +178,27 @@ bool Decoder::read_frame() {
       //std::cout << "not a video packet" << std::endl;
     }
     // Free the packet that was allocated by av_read_frame
-    //av_packet_unref(&packet);
     av_free_packet(&packet);
   }
   return frameComplete;
 }
 
-std::vector<uint8_t> Decoder::get_frame(){
-  std::this_thread::sleep_for(std::chrono::milliseconds(1000));
-  std::cout << "bf0s: " << buffered_frames[0].size() << '\n';
-  return buffered_frames[20];
+uint8_t* Decoder::get_frame(){
+  /*while (!written[current_frame_reading]) {
+    if (done) break;
+  }*/
+  if (written[current_frame_reading]) {
+    return buffered_frames[current_frame_reading].data();
+  }
+  if (current_frame_reading == 0) {
+    return buffered_frames[BUFFERED_FRAMES_COUNT-1].data();
+  }
+  return buffered_frames[current_frame_reading-1].data();
+}
+
+void Decoder::clear_frame_for_writing() {
+  written[current_frame_reading] = false;
+  current_frame_reading = (current_frame_reading + 1) % BUFFERED_FRAMES_COUNT;
 }
 
 int Decoder::get_width() {

@@ -37,55 +37,47 @@ Renderer* current_renderer;
 
 
 void redraw_global() {
-  //std::cout << "drawing...\n";
-  //glFlush();
-  //glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+  //std::cout << "drawing\n";
+	
+  for (int i=0; i<current_renderer->get_num_windows(); ++i) {
+		glutSetWindow(current_renderer->get_window_id(i));
+    glFlush();
+    
+    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, current_renderer->_dec.get_width(), current_renderer->_dec.get_height(), GL_RGB, GL_UNSIGNED_BYTE, current_renderer->_dec.get_frame());
+    glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+    glutSwapBuffers();
+	}
+  
+  
   //glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, current_renderer->_dec.get_width(), current_renderer->_dec.get_height(), GL_RGB, GL_UNSIGNED_BYTE, current_renderer->_dec.get_frame());
-  //glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 2, 2, GL_RGB, GL_UNSIGNED_BYTE, pixels.data());
-  //glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 2, 2, 0, GL_RGB, GL_FLOAT, pixels.data());
-	//glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
-	//glutSwapBuffers();
-  
-  /*
-  glColor3f(1.0, 1.0, 1.0);
-  glBegin(GL_POLYGON);
-  glVertex2i(200,125);
-  glVertex2i(100,375);
-  glVertex2i(300,375);
-  glEnd();
-  glFlush();
-  glutSwapBuffers();*/
-  
-  //glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
-  //glClear(GL_COLOR_BUFFER_BIT);
-  glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
-	glClear(GL_COLOR_BUFFER_BIT);
-  // Draw a rectangle from the 2 triangles using 6 indices
-
-  //std::cout << "0\n";
-	//glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 2, 2, 0, GL_RGB, GL_FLOAT, pixels);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, current_renderer->_dec.get_width(), current_renderer->_dec.get_height(), 0, GL_RGB, GL_UNSIGNED_BYTE, current_renderer->_dec.get_frame().data());
-	//glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 2, 2, GL_RGB, GL_FLOAT, pixels);
-  //glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, current_renderer->_dec.get_width(), current_renderer->_dec.get_height(), GL_RGB, GL_UNSIGNED_BYTE, current_renderer->_dec.get_frame().data());
-
-  //std::cout << "1\n";
-  glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
-
-  //std::cout << "2\n";
-  glutSwapBuffers();
+  //glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+  //glutSwapBuffers();
+  current_renderer->_dec.clear_frame_for_writing();
 }
 
 void keyboard_global(unsigned char key, int x, int y) {
-  if( key == 'q' || key == 27 ) glutLeaveMainLoop();
+  if( key == 'q' || key == 27 ) {
+    current_renderer->_dec.stop();
+    glutLeaveMainLoop();
+  }
 }
 
-GLWindow::GLWindow(int video_width, int video_height) : 
+GLWindow::GLWindow(int video_width, int video_height, float section_top, float section_bottom, float section_left, float section_right) : 
     _video_width(video_width), _video_height(video_height) {
   //std::cout << "trying to create a window" << std::endl;
 
+  vertices[6]   = section_top;
+  vertices[13]  = section_top;
+  vertices[20]  = section_bottom;
+  vertices[27]  = section_bottom;
+  vertices[5]   = section_left;
+  vertices[26]  = section_left;
+  vertices[12]  = section_right;
+  vertices[19]  = section_right;
+  
   glutInitDisplayMode(GLUT_RGB);
 	glutInitWindowSize(400,500);		// width=400pixels height=500pixels
-	_id = glutCreateWindow("Triangle");	// create window
+	id = glutCreateWindow("Triangle");	// create window
 
 	// Initialise glew
 	glewExperimental = GL_TRUE; //needed as it is old!
@@ -170,12 +162,8 @@ GLWindow::GLWindow(int video_width, int video_height) :
   glGenTextures(1, &tex);
   glBindTexture(GL_TEXTURE_2D, tex);
 
-	//set pixels array as texture current_renderer->_dec.get_width(), current_renderer->_dec.get_height(), GL_RGB, GL_UNSIGNED_BYTE, current_renderer->_dec.get_frame());
-	//glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 2, 2, 0, GL_RGB, GL_FLOAT, pixels);
-  std::cout << "before texture setting\n";
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, _video_width, _video_height, 0, GL_RGB, GL_UNSIGNED_BYTE, current_renderer->_dec.get_frame().data());
-	//glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, _video_width, _video_height, 0, GL_RGB, GL_UNSIGNED_BYTE, pixels_test.data());
-  std::cout << "after texture setting\n";
+	//set pixels array as texture
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, _video_width, _video_height, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
   
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
@@ -197,6 +185,10 @@ GLWindow::~GLWindow() {
 	glDeleteVertexArrays(1, &vao);
 }
 
+
+/*****************************************************
+* RENDERER
+*****************************************************/
 Renderer::Renderer(Decoder &dec) : _dec(dec) {
   current_renderer = this;
   int argc = 1;
@@ -204,7 +196,9 @@ Renderer::Renderer(Decoder &dec) : _dec(dec) {
   int win;
 	glutInit(&argc, argv);		// initialize GLUT system
 
-  _windows.emplace_back(GLWindow(_dec.get_width(), _dec.get_height()));
+  //create an OpenGL window with video size and section sizes , float section_top, float section_bottom, float section_left, float section_right
+  _windows.emplace_back(GLWindow(_dec.get_width(), _dec.get_height(), 0.0f, 1.0f, 0.0f, 0.5f));
+  _windows.emplace_back(GLWindow(_dec.get_width(), _dec.get_height(), 0.0f, 1.0f, 0.5f, 1.0f));
 
 	//glutMainLoop();
 }
@@ -214,45 +208,20 @@ void Renderer::run() {
 }
 
 void Renderer::redraw()	{
-	//std::cout << "display 1" << std::endl;
-	/*std::this_thread::sleep_for(std::chrono::milliseconds(1000));
-	if (written[nextFrame]) {
-		std::cout << "reading frame " << nextFrame << std::endl;
-		//TODO TIMED EVENT
-		//rt1 = std::chrono::system_clock::now();
-		++framesread;
-		
-		//SaveFrame(buffered_av_frames[nextFrame], pCodecCtx->width, pCodecCtx->height, nextFrame*10+8);
-		for (int i=0; i<WINDOW_COUNT; ++i) {
-			glutSetWindow(win_ids[i]);
-			glFlush();
-			//glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, pCodecCtx->width, pCodecCtx->height, GL_RGB, GL_UNSIGNED_BYTE, buffered_av_frames[nextFrame]->data[0]);
-			glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, pCodecCtx->width, pCodecCtx->height, GL_RGB, GL_UNSIGNED_BYTE, buffered_frames[nextFrame].pFrameRGB->data[0]);
-			glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
-			glutSwapBuffers();
-		}
-		
-		written[nextFrame] = false;
-		++nextFrame;
-		//if (nextFrame > 100) { glutLeaveMainLoop(); }
-		nextFrame = nextFrame%BUFFERED_FRAMES_COUNT;
-		//rt2 = std::chrono::system_clock::now();
-		//std::cout << "waited " << notreadycount << " rounds for this frame" << std::endl;
-		notreadycount = 0;
-	} else {
-		++notreadycount;
-		//std::cout << "waiting for next frame, " << framesread << " already read, frame " << nextFrame << " is not ready for the " << notreadycount << " time" << std::endl;
-	}
-	//std::chrono::duration<double> elapsed_seconds = rt2-rt1;
-	//std::cout << "elapsed time:" << elapsed_seconds.count() << std::endl;
-	//glutSwapBuffers();
-	//std::this_thread::sleep_for(std::chrono::milliseconds(1000));*/
+
 }
 
 void Renderer::keyboard(unsigned char key, int x, int y) {
   if( key == 'q' || key == 27 ) glutLeaveMainLoop();
 }
 
+int Renderer::get_num_windows() {
+  return _windows.size();
+}
+
+int Renderer::get_window_id(int win) {
+  return _windows[win].id;
+}
 
 
 
