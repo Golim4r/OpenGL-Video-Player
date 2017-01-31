@@ -57,7 +57,7 @@ private:
 	GLint posAttrib, colAttrib, texAttrib;
   
   //std::vector<GLfloat> vertices = {
-  /*GLfloat vertices[28] = {
+  GLfloat vertices[28] = {
   //  Position      Color             Texcoords
       -1.0f,  1.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, // Top-left
        1.0f,  1.0f, 0.0f, 1.0f, 0.0f, 1.0f, 0.0f, // Top-right
@@ -68,7 +68,7 @@ private:
   GLuint elements[6] = {
       0, 1, 2,
       2, 3, 0
-  };*/
+  };
   
 public:
   GLWindow(int video_width, int video_height);

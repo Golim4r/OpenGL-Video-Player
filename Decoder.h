@@ -47,7 +47,7 @@ public:
   ~Decoder();
   
   void run();
-  uint8_t* get_frame();
+  std::vector<uint8_t> get_frame();
   int get_width();
   int get_height();
 };

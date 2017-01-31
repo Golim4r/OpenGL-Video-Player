@@ -177,8 +177,10 @@ bool Decoder::read_frame() {
   return frameComplete;
 }
 
-uint8_t* Decoder::get_frame(){
-  return buffered_frames[0].data();
+std::vector<uint8_t> Decoder::get_frame(){
+  std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+  std::cout << "bf0s: " << buffered_frames[0].size() << '\n';
+  return buffered_frames[20];
 }
 
 int Decoder::get_width() {

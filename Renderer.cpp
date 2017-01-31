@@ -29,115 +29,15 @@ float pixels[] = {
   0.3f, 0.6f, 0.9f,  0.0f, 1.0f, 0.0f
 };
 
-GLfloat vertices[28] = {
-  //  Position      Color             Texcoords
-      -1.0f,  1.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, // Top-left
-       1.0f,  1.0f, 0.0f, 1.0f, 0.0f, 1.0f, 0.0f, // Top-right
-       1.0f, -1.0f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f, // Bottom-right
-      -1.0f, -1.0f, 1.0f, 1.0f, 1.0f, 0.0f, 1.0f  // Bottom-left
-  };
-  
-  GLuint elements[6] = {
-      0, 1, 2,
-      2, 3, 0
-  };
-  
-GLWindow::GLWindow(int video_width, int video_height) : _video_width(video_width), _video_height(video_height) {
-  //std::cout << "trying to create a window" << std::endl;
-  _id = glutCreateWindow("testWindow");
-  
-  glewExperimental = GL_TRUE; //needed as it is old!
-  GLenum err = glewInit();
-  if (GLEW_OK != err)	{
-    std::cerr<<"Error: " << glewGetErrorString(err)<<std::endl;
-  } else {
-    if (GLEW_VERSION_3_3)
-    {
-      std::cout<<"Driver supports OpenGL 3.3:"<<std::endl;
-    }
-  }
-  
-  glGenVertexArrays(1, &vao);
-  glBindVertexArray(vao);
-  
-  //GLuint vbo;
-  glGenBuffers(1, &vbo);
-  
-  glBindBuffer(GL_ARRAY_BUFFER, vbo);
-  glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
-  
-  glGenBuffers(1, &ebo);
-  
-  glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
-  glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(elements), elements, GL_STATIC_DRAW);
-  
-  // Create and compile the vertex shader
-  vertexShader = glCreateShader(GL_VERTEX_SHADER);
-  glShaderSource(vertexShader, 1, &vertexSource, NULL);
-  glCompileShader(vertexShader);
-  
-  fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
-  glShaderSource(fragmentShader, 1, &fragmentSource, NULL);
-  glCompileShader(fragmentShader);
-  
-  // Link the vertex and fragment shader into a shader program
-  shaderProgram = glCreateProgram();
-  glAttachShader(shaderProgram, vertexShader);
-  glAttachShader(shaderProgram, fragmentShader);
-  glBindFragDataLocation(shaderProgram, 0, "outColor");
-  glLinkProgram(shaderProgram);
-  glUseProgram(shaderProgram);
-  
-  // Specify the layout of the vertex data
-  posAttrib = glGetAttribLocation(shaderProgram, "position");
-  glEnableVertexAttribArray(posAttrib);
-  glVertexAttribPointer(posAttrib, 2, GL_FLOAT, GL_FALSE, 7 * sizeof(GLfloat), 0);
-  
-  colAttrib = glGetAttribLocation(shaderProgram, "color");
-  glEnableVertexAttribArray(colAttrib);
-  glVertexAttribPointer(colAttrib, 3, GL_FLOAT, GL_FALSE, 7 * sizeof(GLfloat), (void*)(2 * sizeof(GLfloat)));
-  
-  texAttrib = glGetAttribLocation(shaderProgram, "texcoord");
-  glEnableVertexAttribArray(texAttrib);
-  glVertexAttribPointer(texAttrib, 2, GL_FLOAT, GL_FALSE, 7 * sizeof(GLfloat), (void*)(5 * sizeof(GLfloat)));
-  
-  // Load texture
-  tex;
-  glGenTextures(1, &tex);
-  glBindTexture(GL_TEXTURE_2D, tex);
-  
-  //set pixels array as texture
-  //while(!written[0]) {} //wait for the first frame to be buffered
-  //glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, pCodecCtx->width, pCodecCtx->height, 0, GL_RGB, GL_UNSIGNED_BYTE, buffered_frames[0].pFrameRGB->data[0]);
-  //glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, _video_width, _video_height, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
-  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 2, 2, 0, GL_RGB, GL_FLOAT, pixels);
-  
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-  
-  std::cout << "window created" << std::endl;
-}
+std::vector<uint8_t> pixels_test(6220800);
 
-GLWindow::~GLWindow() {
-	glDeleteTextures(1, &tex);
-
-	glDeleteProgram(shaderProgram);
-	glDeleteShader(fragmentShader);
-	glDeleteShader(vertexShader);
-
-	glDeleteBuffers(1, &ebo);
-	glDeleteBuffers(1, &vbo);
-	glDeleteVertexArrays(1, &vao);
-}
 
 Renderer* current_renderer;
 
 
 
 void redraw_global() {
-  std::cout << "drawing...\n";
+  //std::cout << "drawing...\n";
   //glFlush();
   //glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
   //glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, current_renderer->_dec.get_width(), current_renderer->_dec.get_height(), GL_RGB, GL_UNSIGNED_BYTE, current_renderer->_dec.get_frame());
@@ -158,42 +58,158 @@ void redraw_global() {
   
   //glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
   //glClear(GL_COLOR_BUFFER_BIT);
-
+  glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+	glClear(GL_COLOR_BUFFER_BIT);
   // Draw a rectangle from the 2 triangles using 6 indices
-  std::cout << "----- 1 -----\n";
-  glDrawElements(GL_TRIANGLES, 6, GL_FLOAT, 0);
 
-  // Swap buffers
-  std::cout << "----- 2 -----\n";
+  //std::cout << "0\n";
+	//glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 2, 2, 0, GL_RGB, GL_FLOAT, pixels);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, current_renderer->_dec.get_width(), current_renderer->_dec.get_height(), 0, GL_RGB, GL_UNSIGNED_BYTE, current_renderer->_dec.get_frame().data());
+	//glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 2, 2, GL_RGB, GL_FLOAT, pixels);
+  //glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, current_renderer->_dec.get_width(), current_renderer->_dec.get_height(), GL_RGB, GL_UNSIGNED_BYTE, current_renderer->_dec.get_frame().data());
+
+  //std::cout << "1\n";
+  glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+
+  //std::cout << "2\n";
   glutSwapBuffers();
-  glFlush();
-  std::cout << "----- 3 -----\n";
 }
 
 void keyboard_global(unsigned char key, int x, int y) {
   if( key == 'q' || key == 27 ) glutLeaveMainLoop();
 }
 
-Renderer::Renderer(Decoder &dec) : _dec(dec) {
-  int argc = 1;
-  char* argv[] = {"egal"};
-  glutInit(&argc, argv);
+GLWindow::GLWindow(int video_width, int video_height) : 
+    _video_width(video_width), _video_height(video_height) {
+  //std::cout << "trying to create a window" << std::endl;
+
   glutInitDisplayMode(GLUT_RGB);
-	
+	glutInitWindowSize(400,500);		// width=400pixels height=500pixels
+	_id = glutCreateWindow("Triangle");	// create window
+
+	// Initialise glew
+	glewExperimental = GL_TRUE; //needed as it is old!
+	GLenum err = glewInit();
+	if (GLEW_OK != err)	{
+	   std::cerr<<"Error: "<<glewGetErrorString(err)<<std::endl;
+	} else {
+	   if (GLEW_VERSION_3_3)
+	   {
+		  std::cout<<"Driver supports OpenGL 3.3:"<<std::endl;
+	   }
+	}
+
+  glClearColor(0.0,0.0,0.0,0.0);	// set background to black
+  gluOrtho2D(0,400,0,500);		// how object is mapped to window
+  glutDisplayFunc(redraw_global);		// set window's display callback
+  glutIdleFunc(redraw_global);
+  glutKeyboardFunc(keyboard_global);		// set window's key callback
+
   // Set closing behaviour: If we leave the mainloop (e.g. through user input or closing the window) we continue after the function "glutMainLoop()"
 	glutSetOption(GLUT_ACTION_ON_WINDOW_CLOSE,GLUT_ACTION_GLUTMAINLOOP_RETURNS);
+
+
+	// Create Vertex Array Object
+	GLuint vao;
+	glGenVertexArrays(1, &vao);
+	glBindVertexArray(vao);
+
+	// Create a Vertex Buffer Object and copy the vertex data to it
+	GLuint vbo;
+	glGenBuffers(1, &vbo);
+
+	glBindBuffer(GL_ARRAY_BUFFER, vbo);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+
+	// Create an element array
+	GLuint ebo;
+	glGenBuffers(1, &ebo);
+
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(elements), elements, GL_STATIC_DRAW);
+
+	// Create and compile the vertex shader
+	GLuint vertexShader = glCreateShader(GL_VERTEX_SHADER);
+	//vertexShader = glCreateShader(GL_VERTEX_SHADER);
+	glShaderSource(vertexShader, 1, &vertexSource, NULL);
+	glCompileShader(vertexShader);
+
+	// Create and compile the fragment shader
+	GLuint fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
+	//fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
+	glShaderSource(fragmentShader, 1, &fragmentSource, NULL);
+	glCompileShader(fragmentShader);
+
+	// Link the vertex and fragment shader into a shader program
+	GLuint shaderProgram = glCreateProgram();
+	//shaderProgram = glCreateProgram();
+	glAttachShader(shaderProgram, vertexShader);
+	glAttachShader(shaderProgram, fragmentShader);
+	glBindFragDataLocation(shaderProgram, 0, "outColor");
+	glLinkProgram(shaderProgram);
+	glUseProgram(shaderProgram);
+
+	// Specify the layout of the vertex data
+	GLint posAttrib = glGetAttribLocation(shaderProgram, "position");
+	//posAttrib = glGetAttribLocation(shaderProgram, "position");
+	glEnableVertexAttribArray(posAttrib);
+	glVertexAttribPointer(posAttrib, 2, GL_FLOAT, GL_FALSE, 7 * sizeof(GLfloat), 0);
+
+	GLint colAttrib = glGetAttribLocation(shaderProgram, "color");
+	//colAttrib = glGetAttribLocation(shaderProgram, "color");
+	glEnableVertexAttribArray(colAttrib);
+	glVertexAttribPointer(colAttrib, 3, GL_FLOAT, GL_FALSE, 7 * sizeof(GLfloat), (void*)(2 * sizeof(GLfloat)));
+
+	GLint texAttrib = glGetAttribLocation(shaderProgram, "texcoord");
+	//texAttrib = glGetAttribLocation(shaderProgram, "texcoord");
+	glEnableVertexAttribArray(texAttrib);
+	glVertexAttribPointer(texAttrib, 2, GL_FLOAT, GL_FALSE, 7 * sizeof(GLfloat), (void*)(5 * sizeof(GLfloat)));
+
+	// Load texture
+  GLuint tex;
+  glGenTextures(1, &tex);
+  glBindTexture(GL_TEXTURE_2D, tex);
+
+	//set pixels array as texture current_renderer->_dec.get_width(), current_renderer->_dec.get_height(), GL_RGB, GL_UNSIGNED_BYTE, current_renderer->_dec.get_frame());
+	//glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 2, 2, 0, GL_RGB, GL_FLOAT, pixels);
+  std::cout << "before texture setting\n";
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, _video_width, _video_height, 0, GL_RGB, GL_UNSIGNED_BYTE, current_renderer->_dec.get_frame().data());
+	//glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, _video_width, _video_height, 0, GL_RGB, GL_UNSIGNED_BYTE, pixels_test.data());
+  std::cout << "after texture setting\n";
   
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+  
+  //std::cout << "window created" << std::endl;
+}
+
+GLWindow::~GLWindow() {
+	glDeleteTextures(1, &tex);
+
+	glDeleteProgram(shaderProgram);
+	glDeleteShader(fragmentShader);
+	glDeleteShader(vertexShader);
+
+	glDeleteBuffers(1, &ebo);
+	glDeleteBuffers(1, &vbo);
+	glDeleteVertexArrays(1, &vao);
+}
+
+Renderer::Renderer(Decoder &dec) : _dec(dec) {
+  current_renderer = this;
+  int argc = 1;
+  char* argv[] = {"egal"};
+  int win;
+	glutInit(&argc, argv);		// initialize GLUT system
+
   _windows.emplace_back(GLWindow(_dec.get_width(), _dec.get_height()));
 
-  glClearColor(0.0,0.0,0.0,0.0);
-  glClear(GL_COLOR_BUFFER_BIT);
-  glutDisplayFunc(redraw_global);
-  glutIdleFunc(redraw_global);
-  glutKeyboardFunc(keyboard_global);
+	//glutMainLoop();
 }
 
 void Renderer::run() {
-  current_renderer = this;
   glutMainLoop();
 }
 

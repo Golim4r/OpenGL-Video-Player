@@ -12,9 +12,10 @@ int main(int argc, char *argv[]) {
   JDurationManager dm;
   
   dm.start();
-  std::thread dt(&Decoder::run, &d);
+  d.run();
+  //std::thread dt(&Decoder::run, &d);
   r.run();
-  dt.join();  
+  //dt.join();  
   
   dm.stop();
   dm.print();
