@@ -24,35 +24,21 @@ const GLchar* fragmentSource =
   "    outColor = texture(tex, Texcoord);"
   "}";
 
-float pixels[] = {
-  0.0f, 0.0f, 0.0f,  1.0f, 0.4f, 0.2f,
-  0.3f, 0.6f, 0.9f,  0.0f, 1.0f, 0.0f
-};
-
-std::vector<uint8_t> pixels_test(6220800);
-
-
 Renderer* current_renderer;
-
-
 
 void redraw_global() {
   //std::cout << "drawing\n";
-	
+	current_renderer->frame_data = current_renderer->_dec.get_frame();
+  
   for (int i=0; i<current_renderer->get_num_windows(); ++i) {
 		glutSetWindow(current_renderer->get_window_id(i));
     glFlush();
     
-    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, current_renderer->_dec.get_width(), current_renderer->_dec.get_height(), GL_RGB, GL_UNSIGNED_BYTE, current_renderer->_dec.get_frame());
+    //glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, current_renderer->_dec.get_width(), current_renderer->_dec.get_height(), GL_RGB, GL_UNSIGNED_BYTE, current_renderer->_dec.get_frame());
+    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, current_renderer->_dec.get_width(), current_renderer->_dec.get_height(), GL_RGB, GL_UNSIGNED_BYTE, current_renderer->frame_data);
     glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
     glutSwapBuffers();
 	}
-  
-  
-  //glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, current_renderer->_dec.get_width(), current_renderer->_dec.get_height(), GL_RGB, GL_UNSIGNED_BYTE, current_renderer->_dec.get_frame());
-  //glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
-  //glutSwapBuffers();
-  current_renderer->_dec.clear_frame_for_writing();
 }
 
 void keyboard_global(unsigned char key, int x, int y) {

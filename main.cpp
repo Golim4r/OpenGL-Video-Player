@@ -7,7 +7,7 @@
 
 
 int main(int argc, char *argv[]) {
-  Decoder d("diablo.mp4");
+  Decoder d("western.mkv");
   
   Renderer r(d);
   JDurationManager dm;

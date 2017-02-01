@@ -1,6 +1,6 @@
 #include "Decoder.h"
 
-Decoder::Decoder(std::string filename) : current_frame_reading(0), current_frame_writing(0), written(BUFFERED_FRAMES_COUNT) {
+Decoder::Decoder(std::string filename) : current_frame_reading(0), current_frame_writing(0), written(BUFFERED_FRAMES_COUNT), tim(106) {
   try {
     std::cout << "opening file " << filename << std::endl;
     av_register_all();
@@ -32,6 +32,10 @@ Decoder::Decoder(std::string filename) : current_frame_reading(0), current_frame
   
     // Get a pointer to the codec context for the video stream
     pCodecCtxOrig=pFormatCtx->streams[videoStream]->codec;
+    fps = static_cast<double>(pFormatCtx->streams[videoStream]->avg_frame_rate.num) / static_cast<double>(pFormatCtx->streams[videoStream]->avg_frame_rate.den);
+    //std::cout << "---- fps num: " << pFormatCtx->streams[videoStream]->avg_frame_rate.num << ", denum: " << pFormatCtx->streams[videoStream]->avg_frame_rate.den << '\n';
+    //std::cout << "----FPS: " << fps << "----\n";
+    tim.set_interval(1000.f/fps);
     // Find the decoder for the video stream
     pCodec=avcodec_find_decoder(pCodecCtxOrig->codec_id);
     if(pCodec==NULL) {
@@ -105,6 +109,7 @@ Decoder::~Decoder() {
 void Decoder::run() {
   std::cout << "Decoder trying to run!\n";
   done = false;
+  tim.start();
   //for (int i=0; i<BUFFERED_FRAMES_COUNT; ++i) {
   while(!done) {
     for (int i=0; i<BUFFERED_FRAMES_COUNT; ++i) {
@@ -184,10 +189,9 @@ bool Decoder::read_frame() {
 }
 
 uint8_t* Decoder::get_frame(){
-  /*while (!written[current_frame_reading]) {
-    if (done) break;
-  }*/
+  tim.wait();
   if (written[current_frame_reading]) {
+    clear_frame_for_writing();
     return buffered_frames[current_frame_reading].data();
   }
   if (current_frame_reading == 0) {

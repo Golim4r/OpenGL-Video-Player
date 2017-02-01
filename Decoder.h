@@ -20,6 +20,8 @@ extern "C"
 #include <condition_variable>
 #include <atomic>
 
+#include "JUtils.h"
+
 #define BUFFERED_FRAMES_COUNT 120
 
 class Decoder {
@@ -36,6 +38,7 @@ private:
   int               numBytes;
   uint8_t           *buffer = NULL;
   struct SwsContext *sws_ctx = NULL;
+  double            fps;
   
   std::vector<std::vector<uint8_t>> buffered_frames;
   
@@ -46,6 +49,8 @@ private:
 
   void SaveFrame(int iFrame);
   bool read_frame();
+  
+  JTimedIterationManager tim;
   
 public:
   Decoder() = delete;

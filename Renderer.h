@@ -51,7 +51,9 @@ public:
   Renderer(Decoder &dec);
 
   void run();
+  //should be private, but redraw must be global?
   Decoder& _dec;
+  uint8_t* frame_data;
   
   int get_num_windows();
   int get_window_id(int win);
