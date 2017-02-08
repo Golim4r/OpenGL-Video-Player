@@ -19,23 +19,51 @@ Decoder::Decoder(std::string filename) : current_frame_reading(0), current_frame
     av_dump_format(pFormatCtx, 0, filename.c_str(), 0);
   
     // Find the first video stream
-    videoStream=-1;
+    videoStream = -1;
+    audioStream = -1;
     for(int i=0; i<pFormatCtx->nb_streams; i++) {
-      if(pFormatCtx->streams[i]->codec->codec_type==AVMEDIA_TYPE_VIDEO) {
-          videoStream=i;
-          break;
-        }
+      if (pFormatCtx->streams[i]->codec->codec_type==AVMEDIA_TYPE_VIDEO) {
+        videoStream = i;
+        //break;
+      }
+      if (pFormatCtx->streams[i]->codec->codec_type == AVMEDIA_TYPE_AUDIO) {
+        audioStream = i;
+      }
     }
     if(videoStream==-1) {
       throw 2;
     }
+    
+    if (audioStream != -1) {
+      aCodecCtx = pFormatCtx->streams[audioStream]->codec;
+      aFrame = av_frame_alloc();
+
+      aCodecCtx->codec = avcodec_find_decoder(aCodecCtx->codec_id);
+      if (aCodecCtx->codec == NULL) {
+        //av_free(frame);
+        //avformat_close_input(&formatContext);
+        std::cout << "Couldn't find a proper audio decoder" << std::endl;
+        //return 1;
+      }
+      else if (avcodec_open2(aCodecCtx, aCodecCtx->codec, NULL) != 0) {
+        //av_free(frame);
+        //avformat_close_input(&formatContext);
+        std::cout << "Couldn't open the context with the decoder" << std::endl;
+        //return 1;
+      }
+
+      std::cout << "This stream has " << aCodecCtx->channels << " channels and a sample rate of " << aCodecCtx->sample_rate << "Hz" << std::endl;
+      std::cout << "The data is in the format " << av_get_sample_fmt_name(aCodecCtx->sample_fmt) << std::endl;
+    } else {
+      std::cout << "has no audio stream\n";
+    }
   
     // Get a pointer to the codec context for the video stream
     pCodecCtxOrig=pFormatCtx->streams[videoStream]->codec;
+    
     fps = static_cast<double>(pFormatCtx->streams[videoStream]->avg_frame_rate.num) / static_cast<double>(pFormatCtx->streams[videoStream]->avg_frame_rate.den);
-    //std::cout << "---- fps num: " << pFormatCtx->streams[videoStream]->avg_frame_rate.num << ", denum: " << pFormatCtx->streams[videoStream]->avg_frame_rate.den << '\n';
-    //std::cout << "----FPS: " << fps << "----\n";
     tim.set_interval(1000.f/fps);
+    
     // Find the decoder for the video stream
     pCodec=avcodec_find_decoder(pCodecCtxOrig->codec_id);
     if(pCodec==NULL) {
@@ -98,9 +126,13 @@ Decoder::~Decoder() {
 	// Free the YUV frame
 	av_frame_free(&pFrame);
   
+  // Free the audio frame
+  av_frame_free(&aFrame);
+  
 	// Close the codecs
 	avcodec_close(pCodecCtx);
 	avcodec_close(pCodecCtxOrig);
+	avcodec_close(aCodecCtx);
 
 	// Close the video file
 	avformat_close_input(&pFormatCtx);
@@ -179,8 +211,8 @@ bool Decoder::read_frame() {
       } else {
         //std::cout << "no finished frame" << std::endl;
       }
-    } else {
-      //std::cout << "not a video packet" << std::endl;
+    } else if (packet.stream_index==audioStream){
+      //std::cout << "an audio packet!\n";
     }
     // Free the packet that was allocated by av_read_frame
     av_free_packet(&packet);

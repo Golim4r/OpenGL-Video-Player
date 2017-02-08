@@ -27,12 +27,14 @@ extern "C"
 class Decoder {
 private:
   AVFormatContext   *pFormatCtx = NULL;
-  int               videoStream;
+  int               videoStream, audioStream;
   AVCodecContext    *pCodecCtxOrig = NULL;
   AVCodecContext    *pCodecCtx = NULL;
+  AVCodecContext    *aCodecCtx = NULL;
   AVCodec           *pCodec = NULL;
   AVFrame           *pFrame = NULL;
   AVFrame           *pFrameRGB = NULL;
+  AVFrame           *aFrame = NULL;
   AVPacket          packet;
   int               frameFinished;
   int               numBytes;

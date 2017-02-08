@@ -3,11 +3,18 @@
 
 #include "Renderer.h"
 #include "Decoder.h"
+#include "Audioplayer.h"
 #include "JUtils.h"
 
 
 int main(int argc, char *argv[]) {
-  Decoder d("western.mkv");
+  std::string filename = "CarRace.mp4";
+	if (argc > 1) {
+		filename = argv[1];
+	}
+  Audioplayer asd;
+  
+  Decoder d(filename);
   
   Renderer r(d);
   JDurationManager dm;
