@@ -27,13 +27,10 @@ static void list_audio_devices(const ALCchar *devices)
 }
 
 Audioplayer::Audioplayer() {
-  //fprintf(stdout, "Using " BACKEND " as audio backend\n");
-
 	enumeration = alcIsExtensionPresent(NULL, "ALC_ENUMERATION_EXT");
 	if (enumeration == AL_FALSE) {
     std::cout << "enumeration extension not available\n";
   }
-		//fprintf(stderr, "enumeration extension not available\n");
 
 	list_audio_devices(alcGetString(NULL, ALC_DEVICE_SPECIFIER));
 
@@ -85,7 +82,38 @@ Audioplayer::Audioplayer() {
   alutLoadWAVFile((ALbyte *)"test.wav", &format, &data, &size, &freq, &loop);
 	TEST_ERROR("loading wav file");
 
-	alBufferData(buffer, format, data, size, freq);
+  //std::cout << "data[0]: " << (int)data[0] << '\n';
+  //std::cout << "type of data: " << typeid(typeof(data)).name() << '\n';
+  
+	/*alBufferData(buffer, format, data, size, freq);
+  TEST_ERROR("buffer copy");
+
+  alSourcei(source, AL_BUFFER, buffer);
+  TEST_ERROR("buffer binding");
+  
+	alSourcePlay(source);
+	TEST_ERROR("source playing");
+  
+	alGetSourcei(source, AL_SOURCE_STATE, &source_state);
+	TEST_ERROR("source state get");
+	while (source_state == AL_PLAYING) {
+		alGetSourcei(source, AL_SOURCE_STATE, &source_state);
+		TEST_ERROR("source state get");
+	}*/
+}
+
+Audioplayer::~Audioplayer() {
+  /* exit context */
+  alDeleteSources(1, &source);
+	alDeleteBuffers(1, &buffer);
+	device = alcGetContextsDevice(context);
+	alcMakeContextCurrent(NULL);
+	alcDestroyContext(context);
+	alcCloseDevice(device);
+}
+
+void Audioplayer::play() {
+  alBufferData(buffer, format, data, size, freq);
   TEST_ERROR("buffer copy");
 
   alSourcei(source, AL_BUFFER, buffer);
@@ -102,12 +130,23 @@ Audioplayer::Audioplayer() {
 	}
 }
 
-Audioplayer::~Audioplayer() {
-  /* exit context */
-  alDeleteSources(1, &source);
-	alDeleteBuffers(1, &buffer);
-	device = alcGetContextsDevice(context);
-	alcMakeContextCurrent(NULL);
-	alcDestroyContext(context);
-	alcCloseDevice(device);
+void Audioplayer::play(uint8_t* buf) {
+  std::cout << "trying to play the buffer\n";
+  alBufferData(buffer, AL_FORMAT_STEREO8, (ALvoid*)buf, 8192, freq);
+  TEST_ERROR("buffer copy");
+  std::cout << "trying to play the buffer2\n";
+  
+  alSourcei(source, AL_BUFFER, buffer);
+  TEST_ERROR("buffer binding");
+  
+  std::cout << "trying to play the buffer3\n";
+	alSourcePlay(source);
+	TEST_ERROR("source playing");
+  
+	alGetSourcei(source, AL_SOURCE_STATE, &source_state);
+	TEST_ERROR("source state get");
+	while (source_state == AL_PLAYING) {
+		alGetSourcei(source, AL_SOURCE_STATE, &source_state);
+		TEST_ERROR("source state get");
+	}
 }

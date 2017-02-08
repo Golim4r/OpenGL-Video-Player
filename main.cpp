@@ -13,6 +13,7 @@ int main(int argc, char *argv[]) {
 		filename = argv[1];
 	}
   Audioplayer asd;
+  asd.play();
   
   Decoder d(filename);
   
@@ -24,6 +25,8 @@ int main(int argc, char *argv[]) {
   std::thread dt(&Decoder::run, &d);
   r.run();
   dt.join();  
+  
+  asd.play(d.get_audio_frame());
   
   dm.stop();
   dm.print();

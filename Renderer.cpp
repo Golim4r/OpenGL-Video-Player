@@ -28,13 +28,13 @@ Renderer* current_renderer;
 
 void redraw_global() {
   //std::cout << "drawing\n";
-	current_renderer->frame_data = current_renderer->_dec.get_frame();
+	current_renderer->frame_data = current_renderer->_dec.get_video_frame();
   
   for (int i=0; i<current_renderer->get_num_windows(); ++i) {
 		glutSetWindow(current_renderer->get_window_id(i));
     glFlush();
     
-    //glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, current_renderer->_dec.get_width(), current_renderer->_dec.get_height(), GL_RGB, GL_UNSIGNED_BYTE, current_renderer->_dec.get_frame());
+    
     glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, current_renderer->_dec.get_width(), current_renderer->_dec.get_height(), GL_RGB, GL_UNSIGNED_BYTE, current_renderer->frame_data);
     glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
     glutSwapBuffers();

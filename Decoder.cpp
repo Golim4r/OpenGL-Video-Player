@@ -35,21 +35,19 @@ Decoder::Decoder(std::string filename) : current_frame_reading(0), current_frame
     }
     
     if (audioStream != -1) {
+      has_audio = true;
       aCodecCtx = pFormatCtx->streams[audioStream]->codec;
       aFrame = av_frame_alloc();
 
       aCodecCtx->codec = avcodec_find_decoder(aCodecCtx->codec_id);
       if (aCodecCtx->codec == NULL) {
-        //av_free(frame);
-        //avformat_close_input(&formatContext);
         std::cout << "Couldn't find a proper audio decoder" << std::endl;
+        throw 7;
         //return 1;
       }
       else if (avcodec_open2(aCodecCtx, aCodecCtx->codec, NULL) != 0) {
-        //av_free(frame);
-        //avformat_close_input(&formatContext);
         std::cout << "Couldn't open the context with the decoder" << std::endl;
-        //return 1;
+        throw 8;
       }
 
       std::cout << "This stream has " << aCodecCtx->channels << " channels and a sample rate of " << aCodecCtx->sample_rate << "Hz" << std::endl;
@@ -61,7 +59,9 @@ Decoder::Decoder(std::string filename) : current_frame_reading(0), current_frame
     // Get a pointer to the codec context for the video stream
     pCodecCtxOrig=pFormatCtx->streams[videoStream]->codec;
     
-    fps = static_cast<double>(pFormatCtx->streams[videoStream]->avg_frame_rate.num) / static_cast<double>(pFormatCtx->streams[videoStream]->avg_frame_rate.den);
+    fps = static_cast<double>(pFormatCtx->streams[videoStream]->avg_frame_rate.num) / 
+          static_cast<double>(pFormatCtx->streams[videoStream]->avg_frame_rate.den);
+    //set the video refresh interval in ms
     tim.set_interval(1000.f/fps);
     
     // Find the decoder for the video stream
@@ -103,8 +103,9 @@ Decoder::Decoder(std::string filename) : current_frame_reading(0), current_frame
                   PIX_FMT_RGB24, SWS_BILINEAR, NULL, NULL, NULL);
     
     //initialize the buffer vector
-    buffered_frames.resize(BUFFERED_FRAMES_COUNT);
-    std::for_each(buffered_frames.begin(), buffered_frames.end(), [=](std::vector<uint8_t> &v) { v.resize(numBytes); });    
+    buffered_video_frames.resize(BUFFERED_FRAMES_COUNT);
+    buffered_audio_frames.resize(BUFFERED_FRAMES_COUNT);
+    std::for_each(buffered_video_frames.begin(), buffered_video_frames.end(), [=](std::vector<uint8_t> &v) { v.resize(numBytes); });    
   } catch (int e) {
     std::vector<std::string> error_strings = 
     { "Error opening file\n",
@@ -113,12 +114,21 @@ Decoder::Decoder(std::string filename) : current_frame_reading(0), current_frame
       "unsupported codec\n",
       "Couldn't copy codec context\n",
       "Couldn't open codec\n",
-      "Couldn't allocate pFrameRGB\n"};
+      "Couldn't allocate pFrameRGB\n",
+      "Couldn't find a proper audio decoder",
+      "Couldn't open the context with the decoder"};
     std::cerr << "EXCEPTION:\n" << error_strings[e];
+    
+    //todo cleanup?
   }
 }
 
 Decoder::~Decoder() {
+  if (has_audio) {
+    // Free the audio frame and close codec
+    av_frame_free(&aFrame);
+    avcodec_close(aCodecCtx);
+  }
 	// Free the RGB image
 	av_free(buffer);
 	av_frame_free(&pFrameRGB);
@@ -126,14 +136,10 @@ Decoder::~Decoder() {
 	// Free the YUV frame
 	av_frame_free(&pFrame);
   
-  // Free the audio frame
-  av_frame_free(&aFrame);
-  
 	// Close the codecs
 	avcodec_close(pCodecCtx);
 	avcodec_close(pCodecCtxOrig);
-	avcodec_close(aCodecCtx);
-
+	
 	// Close the video file
 	avformat_close_input(&pFormatCtx);
  }
@@ -153,8 +159,8 @@ void Decoder::run() {
         if (done) break;
       }
       
-      //copy the read frame into buffered_frames
-      std::memcpy(buffered_frames[i].data(), buffer, numBytes);
+      //copy the read frame into buffered_video_frames
+      std::memcpy(buffered_video_frames[i].data(), buffer, numBytes);
       written[current_frame_writing] = true;
       current_frame_writing = (current_frame_writing + 1) % BUFFERED_FRAMES_COUNT;
     }
@@ -212,29 +218,47 @@ bool Decoder::read_frame() {
         //std::cout << "no finished frame" << std::endl;
       }
     } else if (packet.stream_index==audioStream){
-      //std::cout << "an audio packet!\n";
+      int length = avcodec_decode_audio4(aCodecCtx, aFrame, &frameFinished, &packet);
+      std::cout << "decoded audio packet has length: " << length << '\n';
+      int data_size = av_samples_get_buffer_size(NULL, 
+					       aCodecCtx->channels,
+					       aFrame->nb_samples,
+					       aCodecCtx->sample_fmt,
+					       1);
+      std::cout << "decoded audio packet has data size: " << data_size << '\n';
+      if (first_time_only) {
+        buffered_audio_frames[0].resize(data_size);
+        std::memcpy(buffered_audio_frames[0].data(), aFrame->data[0], data_size);
+        first_time_only = true;
+      }
+    } else {
+      // Free the packet that was allocated by av_read_frame
+      av_free_packet(&packet);
     }
-    // Free the packet that was allocated by av_read_frame
-    av_free_packet(&packet);
   }
   return frameComplete;
 }
 
-uint8_t* Decoder::get_frame(){
+uint8_t* Decoder::get_video_frame(){
   tim.wait();
   if (written[current_frame_reading]) {
     clear_frame_for_writing();
-    return buffered_frames[current_frame_reading].data();
+    return buffered_video_frames[current_frame_reading].data();
   }
   if (current_frame_reading == 0) {
-    return buffered_frames[BUFFERED_FRAMES_COUNT-1].data();
+    return buffered_video_frames[BUFFERED_FRAMES_COUNT-1].data();
   }
-  return buffered_frames[current_frame_reading-1].data();
+  return buffered_video_frames[current_frame_reading-1].data();
 }
 
 void Decoder::clear_frame_for_writing() {
   written[current_frame_reading] = false;
   current_frame_reading = (current_frame_reading + 1) % BUFFERED_FRAMES_COUNT;
+}
+
+uint8_t* Decoder::get_audio_frame() {
+  std::cout << "trying to return the audio buffer\n";
+  return buffered_audio_frames[0].data();
 }
 
 int Decoder::get_width() {

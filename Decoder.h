@@ -42,7 +42,10 @@ private:
   struct SwsContext *sws_ctx = NULL;
   double            fps;
   
-  std::vector<std::vector<uint8_t>> buffered_frames;
+  bool has_audio = false;
+  
+  std::vector<std::vector<uint8_t>> buffered_video_frames;
+  std::vector<std::vector<uint8_t>> buffered_audio_frames;
   
   std::atomic<bool> done;
   
@@ -54,6 +57,7 @@ private:
   
   JTimedIterationManager tim;
   
+  bool first_time_only = false;
 public:
   Decoder() = delete;
   Decoder(std::string filename = "CarRace.mp4");
@@ -62,8 +66,10 @@ public:
   void run();
   void stop();
   
-  uint8_t* get_frame();
+  uint8_t* get_video_frame();
   void clear_frame_for_writing();
+  
+  uint8_t* get_audio_frame();
   
   int get_width();
   int get_height();

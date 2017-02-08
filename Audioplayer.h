@@ -33,4 +33,7 @@ private:
 public:
   Audioplayer();
   ~Audioplayer();
+  
+  void play();
+  void play(uint8_t* buf);
 };
