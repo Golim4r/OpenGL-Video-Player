@@ -47,6 +47,8 @@ private:
   std::vector<std::vector<uint8_t>> buffered_video_frames;
   std::vector<std::vector<uint8_t>> buffered_audio_frames;
   
+  std::vector<uint16_t> audio_test_buffer;
+  
   std::atomic<bool> done;
   
   std::atomic<int> current_frame_reading, current_frame_writing;

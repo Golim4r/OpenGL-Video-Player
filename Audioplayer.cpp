@@ -3,7 +3,7 @@
 #define TEST_ERROR(_msg)		\
 	error = alGetError();		\
 	if (error != AL_NO_ERROR) {	\
-		std::cout << _msg << "ohohoh\n";	\
+		std::cout << _msg << ", " << error << " ohohoh\n";	\
 	}
   
 static void list_audio_devices(const ALCchar *devices)
@@ -54,9 +54,9 @@ Audioplayer::Audioplayer() {
 	TEST_ERROR("make default context");
 
 	/* set orientation */
-	alListener3f(AL_POSITION, 0, 0, 1.0f);
+	/*alListener3f(AL_POSITION, 0, 0, 1.0f);
 	TEST_ERROR("listener position");
-    	alListener3f(AL_VELOCITY, 0, 0, 0);
+  alListener3f(AL_VELOCITY, 0, 0, 0);
 	TEST_ERROR("listener velocity");
 	alListenerfv(AL_ORIENTATION, listenerOri);
 	TEST_ERROR("listener orientation");
@@ -73,14 +73,29 @@ Audioplayer::Audioplayer() {
 	alSource3f(source, AL_VELOCITY, 0, 0, 0);
 	TEST_ERROR("source velocity");
 	alSourcei(source, AL_LOOPING, AL_FALSE);
-	TEST_ERROR("source looping");
+	TEST_ERROR("source looping");*/
 
 	alGenBuffers(1, &buffer);
 	TEST_ERROR("buffer generation");
 
 
-  alutLoadWAVFile((ALbyte *)"test.wav", &format, &data, &size, &freq, &loop);
-	TEST_ERROR("loading wav file");
+  float freq = 440.f;
+	int seconds = 4;
+	unsigned sample_rate = 22050;
+	size_t buf_size = seconds * sample_rate;
+
+	uint8_t *data;
+	data = new uint8_t[buf_size];
+	for(int i=0; i<buf_size; ++i) {
+		//data[i] = 32760 * sin( (2.f*float(3.1415f)*freq)/sample_rate * i );
+		data[i] = i%256;
+	}
+  
+  alBufferData(buffer, AL_FORMAT_MONO8, data, buf_size, freq);
+  TEST_ERROR("buffer copy");
+  
+  //alutLoadWAVFile((ALbyte *)"test.wav", &format, &data, &size, &freq, &loop);
+	//TEST_ERROR("loading wav file");
 
   //std::cout << "data[0]: " << (int)data[0] << '\n';
   //std::cout << "type of data: " << typeid(typeof(data)).name() << '\n';
@@ -113,8 +128,8 @@ Audioplayer::~Audioplayer() {
 }
 
 void Audioplayer::play() {
-  alBufferData(buffer, format, data, size, freq);
-  TEST_ERROR("buffer copy");
+  //alBufferData(buffer, AL_FORMAT_MONO8, data, size, freq);
+  //TEST_ERROR("buffer copy");
 
   alSourcei(source, AL_BUFFER, buffer);
   TEST_ERROR("buffer binding");
@@ -132,7 +147,8 @@ void Audioplayer::play() {
 
 void Audioplayer::play(uint8_t* buf) {
   std::cout << "trying to play the buffer\n";
-  alBufferData(buffer, AL_FORMAT_STEREO8, (ALvoid*)buf, 8192, freq);
+  std::cout << "freq: " << freq << '\n';
+  alBufferData(buffer, AL_FORMAT_MONO8, (ALvoid*)buf, 44100, 44100);
   TEST_ERROR("buffer copy");
   std::cout << "trying to play the buffer2\n";
   

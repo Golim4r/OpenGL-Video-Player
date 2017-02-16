@@ -218,18 +218,36 @@ bool Decoder::read_frame() {
         //std::cout << "no finished frame" << std::endl;
       }
     } else if (packet.stream_index==audioStream){
-      int length = avcodec_decode_audio4(aCodecCtx, aFrame, &frameFinished, &packet);
-      std::cout << "decoded audio packet has length: " << length << '\n';
-      int data_size = av_samples_get_buffer_size(NULL, 
-					       aCodecCtx->channels,
-					       aFrame->nb_samples,
-					       aCodecCtx->sample_fmt,
-					       1);
-      std::cout << "decoded audio packet has data size: " << data_size << '\n';
-      if (first_time_only) {
-        buffered_audio_frames[0].resize(data_size);
-        std::memcpy(buffered_audio_frames[0].data(), aFrame->data[0], data_size);
-        first_time_only = true;
+      while (packet.size > 0) {
+        int i, ch;
+        int got_frame = 0;
+ 
+        int len = avcodec_decode_audio4(aCodecCtx, aFrame, &got_frame, &packet);
+        if (len < 0) {
+            //fprintf(stderr, "Error while decoding\n");
+            std::cout << "Error while decoding\n";
+        }
+        if (got_frame) {
+            /* if a frame has been decoded, output it */
+            int data_size = av_get_bytes_per_sample(aCodecCtx->sample_fmt);
+            if (data_size < 0) {
+                /* This should not occur, checking just for paranoia */
+                //fprintf(stderr, "Failed to calculate data size\n");
+                //exit(1);
+                std::cout << "Failed to calculate data size\n";
+            }
+            /*for (i=0; i<aFrame->nb_samples; i++) {
+                for (ch=0; ch<aCodecCtx->channels; ch++) {
+                    fwrite(decoded_frame->data[ch] + data_size*i, 1, data_size, outfile);
+                }
+            }*/
+            /*for (i=0; i<20; ++i) {
+              std::cout << static_cast<int>(aFrame->data[0][i]) << ' ';
+            }
+            std::cout << "nb samples: " << aFrame->nb_samples << '\n';*/
+        }
+        packet.size -= len;
+        packet.data += len;
       }
     } else {
       // Free the packet that was allocated by av_read_frame
@@ -258,6 +276,11 @@ void Decoder::clear_frame_for_writing() {
 
 uint8_t* Decoder::get_audio_frame() {
   std::cout << "trying to return the audio buffer\n";
+  buffered_audio_frames[0].clear();
+  for (int i=0; i<44100; ++i) {
+    buffered_audio_frames[0].emplace_back(i%256);
+  }
+  
   return buffered_audio_frames[0].data();
 }
 
