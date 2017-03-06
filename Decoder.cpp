@@ -101,6 +101,11 @@ Decoder::Decoder(std::string filename) : current_frame_reading(0), current_frame
     // initialize SWS context for software scaling
     sws_ctx = sws_getContext(	pCodecCtx->width, pCodecCtx->height, pCodecCtx->pix_fmt, pCodecCtx->width, pCodecCtx->height,
                   PIX_FMT_RGB24, SWS_BILINEAR, NULL, NULL, NULL);
+
+    //swr_ctx = swr_alloc_set_opts(NULL, aCodecCtx->channel_layout,
+    //              AV_SAMPLE_FMT_FLT, aCodecCtx->sample_rate,
+    //              aCodecCtx->channel_layout, aCodecCtx->sample_fmt,
+    //              aCodecCtx->sample_rate, 0, NULL);
     
     //initialize the buffer vector
     buffered_video_frames.resize(BUFFERED_FRAMES_COUNT);
@@ -217,12 +222,13 @@ bool Decoder::read_frame() {
       } else {
         //std::cout << "no finished frame" << std::endl;
       }
-    } else if (packet.stream_index==audioStream){
+    } else if (packet.stream_index==audioStream && first_time){
       while (packet.size > 0) {
         int i, ch;
         int got_frame = 0;
  
-        int len = avcodec_decode_audio4(aCodecCtx, aFrame, &got_frame, &packet);
+        int len = avcodec_decode_audio4(aCodecCtx, aFrame, 
+                                      &got_frame, &packet);
         if (len < 0) {
             //fprintf(stderr, "Error while decoding\n");
             std::cout << "Error while decoding\n";
@@ -244,10 +250,16 @@ bool Decoder::read_frame() {
             /*for (i=0; i<20; ++i) {
               std::cout << static_cast<int>(aFrame->data[0][i]) << ' ';
             }
-            std::cout << "nb samples: " << aFrame->nb_samples << '\n';*/
+            std::cout << "nb samples: " << 
+                          aFrame->nb_samples << '\n';*/
+          buffered_audio_frames.resize(1);
+          buffered_audio_frames[0].resize(1024);
+          memcpy(buffered_audio_frames[0].data(), aFrame->data[0],1024);
+          first_time = false;
         }
         packet.size -= len;
         packet.data += len;
+        //std::cout << "rem packet size: " << packet.size << '\n';
       }
     } else {
       // Free the packet that was allocated by av_read_frame
@@ -274,12 +286,8 @@ void Decoder::clear_frame_for_writing() {
   current_frame_reading = (current_frame_reading + 1) % BUFFERED_FRAMES_COUNT;
 }
 
-uint8_t* Decoder::get_audio_frame() {
+float* Decoder::get_audio_frame() {
   std::cout << "trying to return the audio buffer\n";
-  buffered_audio_frames[0].clear();
-  for (int i=0; i<44100; ++i) {
-    buffered_audio_frames[0].emplace_back(i%256);
-  }
   
   return buffered_audio_frames[0].data();
 }

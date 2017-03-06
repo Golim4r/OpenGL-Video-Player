@@ -40,12 +40,13 @@ private:
   int               numBytes;
   uint8_t           *buffer = NULL;
   struct SwsContext *sws_ctx = NULL;
+  struct SwrContext *swr_ctx = NULL;
   double            fps;
   
   bool has_audio = false;
   
   std::vector<std::vector<uint8_t>> buffered_video_frames;
-  std::vector<std::vector<uint8_t>> buffered_audio_frames;
+  std::vector<std::vector<float>> buffered_audio_frames;
   
   std::vector<uint16_t> audio_test_buffer;
   
@@ -59,7 +60,7 @@ private:
   
   JTimedIterationManager tim;
   
-  bool first_time_only = false;
+  bool first_time = true;
 public:
   Decoder() = delete;
   Decoder(std::string filename = "CarRace.mp4");
@@ -71,7 +72,7 @@ public:
   uint8_t* get_video_frame();
   void clear_frame_for_writing();
   
-  uint8_t* get_audio_frame();
+  float* get_audio_frame();
   
   int get_width();
   int get_height();

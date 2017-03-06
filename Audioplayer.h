@@ -4,6 +4,7 @@
 
 #include <string>
 #include <cstring>
+#include <cmath>
 #include <iostream>
 #include <stdio.h>
 #include <stdlib.h>
@@ -35,5 +36,5 @@ public:
   ~Audioplayer();
   
   void play();
-  void play(uint8_t* buf);
+  void play(float* buf);
 };

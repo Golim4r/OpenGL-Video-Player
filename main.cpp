@@ -7,26 +7,31 @@
 #include "JUtils.h"
 
 
+void audiothread(Decoder & d) {
+  Audioplayer asd;
+  asd.play();
+  std::cout << "decoder bla: " << d.get_width() << '\n';
+  asd.play(d.get_audio_frame());
+}
+
 int main(int argc, char *argv[]) {
   std::string filename = "CarRace.mp4";
 	if (argc > 1) {
 		filename = argv[1];
 	}
-  Audioplayer asd;
-  asd.play();
-  
   Decoder d(filename);
   
   Renderer r(d);
   JDurationManager dm;
   
   dm.start();
-  //d.run();
+
   std::thread dt(&Decoder::run, &d);
+  std::thread ap(audiothread, std::ref(d));
   r.run();
-  dt.join();  
   
-  asd.play(d.get_audio_frame());
+  ap.join();
+  dt.join();  
   
   dm.stop();
   dm.print();

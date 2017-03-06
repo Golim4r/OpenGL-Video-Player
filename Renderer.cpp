@@ -156,6 +156,7 @@ GLWindow::GLWindow(int video_width, int video_height, float section_top, float s
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
   
+  glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
   //std::cout << "window created" << std::endl;
 }
 
