@@ -38,6 +38,7 @@ public:
   ~GLWindow();
 
   int id;
+  int window_width, window_height;
 };
 
 class Renderer {
@@ -45,7 +46,7 @@ private:
   void keyboard(unsigned char key, int x, int y);
   void redraw();
 
-  std::vector<GLWindow> _windows;
+
   //Decoder& _dec;
 public:
   Renderer(Decoder &dec);
@@ -54,6 +55,9 @@ public:
   //should be private, but redraw must be global?
   Decoder& _dec;
   uint8_t* frame_data;
+
+
+  std::vector<GLWindow> _windows;
   
   int get_num_windows();
   int get_window_id(int win);

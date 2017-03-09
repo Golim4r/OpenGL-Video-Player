@@ -33,7 +33,7 @@ Decoder::Decoder(std::string filename) : current_frame_reading(0), current_frame
     if(videoStream==-1) {
       throw 2;
     }
-    
+
     if (audioStream != -1) {
       has_audio = true;
       aCodecCtx = pFormatCtx->streams[audioStream]->codec;
@@ -64,6 +64,7 @@ Decoder::Decoder(std::string filename) : current_frame_reading(0), current_frame
     //set the video refresh interval in ms
     tim.set_interval(1000.f/fps);
     
+
     // Find the decoder for the video stream
     pCodec=avcodec_find_decoder(pCodecCtxOrig->codec_id);
     if(pCodec==NULL) {
@@ -286,16 +287,31 @@ void Decoder::clear_frame_for_writing() {
   current_frame_reading = (current_frame_reading + 1) % BUFFERED_FRAMES_COUNT;
 }
 
-float* Decoder::get_audio_frame() {
+short* Decoder::get_audio_frame() {
   std::cout << "trying to return the audio buffer\n";
   
+  float freq = 320.f;
+  int seconds = 4;
+  int sample_rate = 22050;
+  int buf_size = seconds * sample_rate;
+
+  buffered_audio_frames[0].resize(buf_size);
+  for (int i=0; i<buffered_audio_frames[0].size(); ++i) {
+    buffered_audio_frames[0][i]
+       = 32760 * std::sin((2.f*3.14159*freq)/sample_rate * i);
+  }
+
   return buffered_audio_frames[0].data();
 }
 
-int Decoder::get_width() {
+const int & Decoder::get_width() {
   return pCodecCtx->width;
 }
 
-int Decoder::get_height() {
+const int & Decoder::get_height() {
   return pCodecCtx->height;
+}
+
+const double & Decoder::get_aspect_ratio() {
+  return aspect_ratio;
 }

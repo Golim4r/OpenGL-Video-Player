@@ -36,5 +36,5 @@ public:
   ~Audioplayer();
   
   void play();
-  void play(float* buf);
+  void play(short* buf);
 };

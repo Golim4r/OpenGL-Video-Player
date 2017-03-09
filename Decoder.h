@@ -42,11 +42,12 @@ private:
   struct SwsContext *sws_ctx = NULL;
   struct SwrContext *swr_ctx = NULL;
   double            fps;
-  
+  double            aspect_ratio;
+
   bool has_audio = false;
   
   std::vector<std::vector<uint8_t>> buffered_video_frames;
-  std::vector<std::vector<float>> buffered_audio_frames;
+  std::vector<std::vector<short>> buffered_audio_frames;
   
   std::vector<uint16_t> audio_test_buffer;
   
@@ -57,6 +58,8 @@ private:
 
   void SaveFrame(int iFrame);
   bool read_frame();
+
+
   
   JTimedIterationManager tim;
   
@@ -72,10 +75,12 @@ public:
   uint8_t* get_video_frame();
   void clear_frame_for_writing();
   
-  float* get_audio_frame();
+  short* get_audio_frame();
   
-  int get_width();
-  int get_height();
+  const int & get_width();
+  const int & get_height();
+
+  const double & get_aspect_ratio();
 };
 
 #endif
