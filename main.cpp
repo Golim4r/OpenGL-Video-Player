@@ -3,15 +3,16 @@
 
 #include "Renderer.h"
 #include "Decoder.h"
-#include "Audioplayer.h"
+//#include "Audioplayer.h"
+#include "Pulseplayer.h"
 #include "JUtils.h"
 
 
 void audiothread(Decoder & d) {
-  Audioplayer asd;
-  asd.play();
-  std::cout << "decoder bla: " << d.get_width() << '\n';
-  asd.play(d.get_audio_frame());
+  Pulseplayer asd;
+  //asd.play();
+  //std::cout << "decoder bla: " << d.get_width() << '\n';
+  //asd.play(d.get_audio_frame());
 }
 
 int main(int argc, char *argv[]) {

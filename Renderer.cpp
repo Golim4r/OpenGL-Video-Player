@@ -59,6 +59,7 @@ void redraw_global() {
       std::cout << " should be: " << desired_ap << '\n';
 
 
+
       glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     }
     
@@ -218,6 +219,7 @@ Renderer::Renderer(Decoder &dec) : _dec(dec) {
 
 	//glutMainLoop();
 }
+
 
 void Renderer::run() {
   glutMainLoop();
