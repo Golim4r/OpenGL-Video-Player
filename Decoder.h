@@ -75,7 +75,7 @@ public:
   uint8_t* get_video_frame();
   void clear_frame_for_writing();
   
-  short* get_audio_frame();
+  std::vector<short> get_audio_frame();
   
   const int & get_width();
   const int & get_height();

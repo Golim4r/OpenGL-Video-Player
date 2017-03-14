@@ -1,6 +1,8 @@
 #include <iostream>
 #include <pulse/simple.h>
 #include <pulse/error.h>
+#include <vector>
+#include <cmath>
 
 class Pulseplayer{
 private:
@@ -11,4 +13,6 @@ private:
 public:
   Pulseplayer();
   ~Pulseplayer();
+
+  void play(std::vector<short> samples);
 };

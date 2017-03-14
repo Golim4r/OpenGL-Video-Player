@@ -287,12 +287,12 @@ void Decoder::clear_frame_for_writing() {
   current_frame_reading = (current_frame_reading + 1) % BUFFERED_FRAMES_COUNT;
 }
 
-short* Decoder::get_audio_frame() {
+std::vector<short> Decoder::get_audio_frame() {
   std::cout << "trying to return the audio buffer\n";
   
-  float freq = 320.f;
+  float freq = 800.f;
   int seconds = 4;
-  int sample_rate = 22050;
+  int sample_rate = 44100;
   int buf_size = seconds * sample_rate;
 
   buffered_audio_frames[0].resize(buf_size);
@@ -301,7 +301,7 @@ short* Decoder::get_audio_frame() {
        = 32760 * std::sin((2.f*3.14159*freq)/sample_rate * i);
   }
 
-  return buffered_audio_frames[0].data();
+  return buffered_audio_frames[0];
 }
 
 const int & Decoder::get_width() {
