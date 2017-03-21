@@ -1,7 +1,7 @@
 #include "Pulseplayer.h"
 
 Pulseplayer::Pulseplayer() {
-  ss = { .format = PA_SAMPLE_S16LE,
+  ss = { .format = PA_SAMPLE_S32LE,
          .rate = 44100,
          .channels = 1 };
   std::cout << "do we have a simple spec? hopefully, cant check\n";
@@ -35,6 +35,17 @@ Pulseplayer::~Pulseplayer() {
 }
 
 void Pulseplayer::play(std::vector<short> samples) {
+  if (pa_simple_write(s, samples.data(), samples.size(), &error)
+      < 0) {
+    std::cerr << "nunja, wohl nicht\n";
+  }
+  if (pa_simple_drain(s, &error) < 0) {
+    std::cerr << "drain nicht\n";
+  }
+}
+
+
+void Pulseplayer::play(std::vector<uint8_t> samples) {
   if (pa_simple_write(s, samples.data(), samples.size(), &error)
       < 0) {
     std::cerr << "nunja, wohl nicht\n";

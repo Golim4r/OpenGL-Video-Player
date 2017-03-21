@@ -12,7 +12,9 @@ void audiothread(Decoder & d) {
   Pulseplayer asd;
   //asd.play();
   //std::cout << "decoder bla: " << d.get_width() << '\n';
-  asd.play(d.get_audio_frame());
+  asd.play(d.get_audio_frame_test());
+  asd.play(d.get_audio_frame_test());
+  asd.play(d.get_audio_frame_test());
 }
 
 int main(int argc, char *argv[]) {

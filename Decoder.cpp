@@ -1,5 +1,49 @@
 #include "Decoder.h"
 
+void printAudioFrameInfo(const AVCodecContext* codecContext, const AVFrame* frame)
+{
+    // See the following to know what data type (unsigned char, short, float, etc) to use to access the audio data:
+    // http://ffmpeg.org/doxygen/trunk/samplefmt_8h.html#af9a51ca15301871723577c730b5865c5
+    std::cout << "Audio frame info:\n"
+              << "  Sample count: " << frame->nb_samples << '\n'
+              << "  Channel count: " << codecContext->channels << '\n'
+              << "  Format: " << av_get_sample_fmt_name(codecContext->sample_fmt) << '\n'
+              << "  Bytes per sample: " << av_get_bytes_per_sample(codecContext->sample_fmt) << '\n'
+              << "  Is planar? " << av_sample_fmt_is_planar(codecContext->sample_fmt) << '\n';
+
+    std::cout << "audio format: " << codecContext->sample_fmt << '\n';
+    std::cout << "frame->linesize[0] tells you the size (in bytes) of each plane\n";
+
+    if (codecContext->channels > AV_NUM_DATA_POINTERS && av_sample_fmt_is_planar(codecContext->sample_fmt))
+    {
+        std::cout << "The audio stream (and its frames) have too many channels to fit in\n"
+                  << "frame->data. Therefore, to access the audio data, you need to use\n"
+                  << "frame->extended_data to access the audio data. It's planar, so\n"
+                  << "each channel is in a different element. That is:\n"
+                  << "  frame->extended_data[0] has the data for channel 1\n"
+                  << "  frame->extended_data[1] has the data for channel 2\n"
+                  << "  etc.\n";
+    }
+    else
+    {
+        std::cout << "Either the audio data is not planar, or there is enough room in\n"
+                  << "frame->data to store all the channels, so you can either use\n"
+                  << "frame->data or frame->extended_data to access the audio data (they\n"
+                  << "should just point to the same data).\n";
+    }
+
+    std::cout << "If the frame is planar, each channel is in a different element.\n"
+              << "That is:\n"
+              << "  frame->data[0]/frame->extended_data[0] has the data for channel 1\n"
+              << "  frame->data[1]/frame->extended_data[1] has the data for channel 2\n"
+              << "  etc.\n";
+
+    std::cout << "If the frame is packed (not planar), then all the data is in\n"
+              << "frame->data[0]/frame->extended_data[0] (kind of like how some\n"
+              << "image formats have RGB pixels packed together, rather than storing\n"
+              << " the red, green, and blue channels separately in different arrays.\n";
+}
+
 Decoder::Decoder(std::string filename) : current_frame_reading(0), current_frame_writing(0), written(BUFFERED_FRAMES_COUNT), tim(106) {
   try {
     std::cout << "opening file " << filename << std::endl;
@@ -37,8 +81,9 @@ Decoder::Decoder(std::string filename) : current_frame_reading(0), current_frame
     if (audioStream != -1) {
       has_audio = true;
       aCodecCtx = pFormatCtx->streams[audioStream]->codec;
-      aFrame = av_frame_alloc();
-
+      //aFrame = av_frame_alloc();
+	  aFrame = avcodec_alloc_frame();
+	  
       aCodecCtx->codec = avcodec_find_decoder(aCodecCtx->codec_id);
       if (aCodecCtx->codec == NULL) {
         std::cout << "Couldn't find a proper audio decoder" << std::endl;
@@ -225,47 +270,35 @@ bool Decoder::read_frame() {
       }
     } else if (packet.stream_index==audioStream && first_time){
       while (packet.size > 0) {
-        int i, ch;
-        int got_frame = 0;
- 
-        int len = avcodec_decode_audio4(aCodecCtx, aFrame, 
-                                      &got_frame, &packet);
-        if (len < 0) {
-            //fprintf(stderr, "Error while decoding\n");
-            std::cout << "Error while decoding\n";
-        }
-        if (got_frame) {
-            /* if a frame has been decoded, output it */
-            int data_size = av_get_bytes_per_sample(aCodecCtx->sample_fmt);
-            if (data_size < 0) {
-                /* This should not occur, checking just for paranoia */
-                //fprintf(stderr, "Failed to calculate data size\n");
-                //exit(1);
-                std::cout << "Failed to calculate data size\n";
-            }
-            /*for (i=0; i<aFrame->nb_samples; i++) {
-                for (ch=0; ch<aCodecCtx->channels; ch++) {
-                    fwrite(decoded_frame->data[ch] + data_size*i, 1, data_size, outfile);
-                }
-            }*/
-            /*for (i=0; i<20; ++i) {
-              std::cout << static_cast<int>(aFrame->data[0][i]) << ' ';
-            }
-            std::cout << "nb samples: " << 
-                          aFrame->nb_samples << '\n';*/
-          buffered_audio_frames.resize(1);
-          buffered_audio_frames[0].resize(1024);
-          memcpy(buffered_audio_frames[0].data(), aFrame->data[0],1024);
-          first_time = false;
-        }
-        packet.size -= len;
-        packet.data += len;
-        //std::cout << "rem packet size: " << packet.size << '\n';
+        int gotFrame = 0;
+		int result = avcodec_decode_audio4(aCodecCtx, aFrame, &gotFrame, &packet);
+		if (result >= 0 && gotFrame) {
+			packet.size -= result;
+			packet.data += result;
+			
+			//printAudioFrameInfo(aCodecCtx, aFrame);
+			//std::cout << "frame data: " << aFrame->data[0] << '\n';
+			//seems to be the same
+			//std::cout << "frame data: " << aFrame->extended_data[0] << '\n';
+			
+			for (int i=0; i<1024*4; ++i) {
+				buffer_riesen_audio.push_back(aFrame->data[0][i]);
+				//buffer_riesen_audio.push_back(aFrame->data[1][i]);
+			}
+      float f;
+      std::memcpy(&f, aFrame->data[1],sizeof(f));
+      std::cout << "f: " << f << '\n'; 
+		} else {
+			packet.size = 0;
+			packet.data = nullptr;
+		}
+			
       }
-    } else {
+	  //first_time = false;
+    } //else {
       // Free the packet that was allocated by av_read_frame
       av_free_packet(&packet);
-    }
+    //}
   }
   return frameComplete;
 }
@@ -290,7 +323,7 @@ void Decoder::clear_frame_for_writing() {
 std::vector<short> Decoder::get_audio_frame() {
   std::cout << "trying to return the audio buffer\n";
   
-  float freq = 800.f;
+  /*float freq = 800.f;
   int seconds = 4;
   int sample_rate = 44100;
   int buf_size = seconds * sample_rate;
@@ -299,9 +332,13 @@ std::vector<short> Decoder::get_audio_frame() {
   for (int i=0; i<buffered_audio_frames[0].size(); ++i) {
     buffered_audio_frames[0][i]
        = 32760 * std::sin((2.f*3.14159*freq)/sample_rate * i);
-  }
-
+  }*/
+  std::cout << "audio frame size: " << buffered_audio_frames[0].size() << '\n';
   return buffered_audio_frames[0];
+}
+
+std::vector<uint8_t> Decoder::get_audio_frame_test() {
+	return buffer_riesen_audio;
 }
 
 const int & Decoder::get_width() {

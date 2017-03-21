@@ -48,7 +48,8 @@ private:
   
   std::vector<std::vector<uint8_t>> buffered_video_frames;
   std::vector<std::vector<short>> buffered_audio_frames;
-  
+  std::vector<uint8_t> buffer_riesen_audio;  
+
   std::vector<uint16_t> audio_test_buffer;
   
   std::atomic<bool> done;
@@ -76,6 +77,7 @@ public:
   void clear_frame_for_writing();
   
   std::vector<short> get_audio_frame();
+  std::vector<uint8_t> get_audio_frame_test();
   
   const int & get_width();
   const int & get_height();
