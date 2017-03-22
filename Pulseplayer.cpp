@@ -16,7 +16,7 @@ Pulseplayer::Pulseplayer() {
   unsigned int sample_rate = 44100;
   size_t buf_size = seconds * sample_rate;
 
-  /*std::vector<short> samples(buf_size);
+  std::vector<short> samples(buf_size);
   for (int i=0; i<buf_size; ++i) {
     samples[i] = 32760 * std::sin((2.f*float(M_PI)*freq)
                  /sample_rate*i);
@@ -27,7 +27,7 @@ Pulseplayer::Pulseplayer() {
   }
   if (pa_simple_drain(s, &error) < 0) {
     std::cerr << "drain nicht\n";
-  }*/
+  }
 }
 
 Pulseplayer::~Pulseplayer() { 
