@@ -81,8 +81,8 @@ Decoder::Decoder(std::string filename) : current_frame_reading(0), current_frame
     if (audioStream != -1) {
       has_audio = true;
       aCodecCtx = pFormatCtx->streams[audioStream]->codec;
-      //aFrame = av_frame_alloc();
-	  aFrame = avcodec_alloc_frame();
+      aFrame = av_frame_alloc();
+	  //aFrame = avcodec_alloc_frame();
 	  
       aCodecCtx->codec = avcodec_find_decoder(aCodecCtx->codec_id);
       if (aCodecCtx->codec == NULL) {
@@ -148,10 +148,11 @@ Decoder::Decoder(std::string filename) : current_frame_reading(0), current_frame
     sws_ctx = sws_getContext(	pCodecCtx->width, pCodecCtx->height, pCodecCtx->pix_fmt, pCodecCtx->width, pCodecCtx->height,
                   PIX_FMT_RGB24, SWS_BILINEAR, NULL, NULL, NULL);
 
-    //swr_ctx = swr_alloc_set_opts(NULL, aCodecCtx->channel_layout,
-    //              AV_SAMPLE_FMT_FLT, aCodecCtx->sample_rate,
-    //              aCodecCtx->channel_layout, aCodecCtx->sample_fmt,
-    //              aCodecCtx->sample_rate, 0, NULL);
+    swr_ctx = swr_alloc_set_opts(NULL, aCodecCtx->channel_layout,
+                  AV_SAMPLE_FMT_U8, aCodecCtx->sample_rate,
+                  aCodecCtx->channel_layout, aCodecCtx->sample_fmt,
+                  aCodecCtx->sample_rate, 0, NULL);
+	  swr_init(swr_ctx);
     
     //initialize the buffer vector
     buffered_video_frames.resize(BUFFERED_FRAMES_COUNT);
@@ -281,13 +282,33 @@ bool Decoder::read_frame() {
 			//seems to be the same
 			//std::cout << "frame data: " << aFrame->extended_data[0] << '\n';
 			
-			for (int i=0; i<1024*4; ++i) {
-				buffer_riesen_audio.push_back(aFrame->data[0][i]);
-				//buffer_riesen_audio.push_back(aFrame->data[1][i]);
-			}
-      float f;
-      std::memcpy(&f, aFrame->data[1],sizeof(f));
-      std::cout << "f: " << f << '\n'; 
+		const uint8_t **in = (const uint8_t **)aFrame->extended_data;
+        uint8_t *out = NULL;
+        int out_linesize;
+        av_samples_alloc(   &out,
+                            &out_linesize,
+                            2,
+                            44100,
+                            AV_SAMPLE_FMT_U8,
+                            0);
+
+        int ret = swr_convert(  swr_ctx,
+                                &out,
+                                44100,
+                                in,
+                                aFrame->nb_samples);
+		//std::cout << "ret: " << ret << '\n';
+			for (int i=0; i<1024*2; ++i) {
+        buffer_riesen_audio.push_back(out[i]);
+				//if (i%2) {
+        //  buffer_riesen_audio.push_back(aFrame->data[0][i]);
+        //} else {				
+        //  buffer_riesen_audio.push_back(aFrame->data[1][i]);
+			  //}
+      }
+      //float f;
+      //std::memcpy(&f, aFrame->data[1],sizeof(f));
+      //std::cout << "f: " << f << '\n'; 
 		} else {
 			packet.size = 0;
 			packet.data = nullptr;
@@ -320,24 +341,29 @@ void Decoder::clear_frame_for_writing() {
   current_frame_reading = (current_frame_reading + 1) % BUFFERED_FRAMES_COUNT;
 }
 
-std::vector<short> Decoder::get_audio_frame() {
-  std::cout << "trying to return the audio buffer\n";
-  
-  /*float freq = 800.f;
+std::vector<uint8_t> Decoder::get_sine_audio_frame() {
+  std::cout << "returning a sine wave\n";
+  std::vector<short> sine_short;
+  std::vector<uint8_t> sine_uint8_t;  
+
+  float freq = 800.f;
   int seconds = 4;
   int sample_rate = 44100;
   int buf_size = seconds * sample_rate;
 
-  buffered_audio_frames[0].resize(buf_size);
-  for (int i=0; i<buffered_audio_frames[0].size(); ++i) {
-    buffered_audio_frames[0][i]
-       = 32760 * std::sin((2.f*3.14159*freq)/sample_rate * i);
-  }*/
-  std::cout << "audio frame size: " << buffered_audio_frames[0].size() << '\n';
-  return buffered_audio_frames[0];
+  sine_short.resize(buf_size);
+  for (int i=0; i<buf_size; ++i) {
+    sine_short[i] = 32760 * std::sin((2.f*3.14159*freq)/sample_rate * i);
+  }
+
+  sine_uint8_t.resize(sine_short.size() * sizeof(short));
+  std::memcpy(sine_uint8_t.data(), sine_short.data(), 
+    sizeof(short) * sine_short.size());
+
+  return sine_uint8_t;
 }
 
-std::vector<uint8_t> Decoder::get_audio_frame_test() {
+std::vector<uint8_t> Decoder::get_audio_frame() {
 	return buffer_riesen_audio;
 }
 

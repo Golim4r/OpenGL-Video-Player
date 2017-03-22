@@ -13,6 +13,7 @@
 #include <inttypes.h>
 #include <unistd.h>
 #include <stdbool.h>
+#include <vector>
 
 class Audioplayer{
 private:
@@ -37,4 +38,5 @@ public:
   
   void play();
   void play(short* buf);
+  void play(std::vector<uint8_t> buffer);
 };

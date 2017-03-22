@@ -1,9 +1,9 @@
 #include "Pulseplayer.h"
 
 Pulseplayer::Pulseplayer() {
-  ss = { .format = PA_SAMPLE_S32LE,
+  ss = { .format = PA_SAMPLE_U8,
          .rate = 44100,
-         .channels = 1 };
+         .channels = 2 };
   std::cout << "do we have a simple spec? hopefully, cant check\n";
 
   if(!(s = pa_simple_new(NULL, "test",PA_STREAM_PLAYBACK, NULL, 
@@ -16,7 +16,7 @@ Pulseplayer::Pulseplayer() {
   unsigned int sample_rate = 44100;
   size_t buf_size = seconds * sample_rate;
 
-  std::vector<short> samples(buf_size);
+  /*std::vector<short> samples(buf_size);
   for (int i=0; i<buf_size; ++i) {
     samples[i] = 32760 * std::sin((2.f*float(M_PI)*freq)
                  /sample_rate*i);
@@ -27,7 +27,7 @@ Pulseplayer::Pulseplayer() {
   }
   if (pa_simple_drain(s, &error) < 0) {
     std::cerr << "drain nicht\n";
-  }
+  }*/
 }
 
 Pulseplayer::~Pulseplayer() { 
@@ -46,6 +46,27 @@ void Pulseplayer::play(std::vector<short> samples) {
 
 
 void Pulseplayer::play(std::vector<uint8_t> samples) {
+  if (pa_simple_write(s, samples.data(), samples.size(), &error)
+      < 0) {
+    std::cerr << "nunja, wohl nicht\n";
+  }
+  if (pa_simple_drain(s, &error) < 0) {
+    std::cerr << "drain nicht\n";
+  }
+}
+
+void Pulseplayer::play() {
+  
+  float freq = 440.f;
+  int seconds = 5;
+  unsigned int sample_rate = 44100;
+  size_t buf_size = seconds * sample_rate;
+
+  std::vector<short> samples(buf_size);
+  for (int i=0; i<buf_size; ++i) {
+    samples[i] = 32760 * std::sin((2.f*float(M_PI)*freq)
+                 /sample_rate*i);
+  }
   if (pa_simple_write(s, samples.data(), samples.size(), &error)
       < 0) {
     std::cerr << "nunja, wohl nicht\n";

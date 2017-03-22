@@ -10,14 +10,20 @@
 
 void audiothread(Decoder & d) {
   Pulseplayer asd;
+  //Audioplayer asd;
+  
   //asd.play();
-  //std::cout << "decoder bla: " << d.get_width() << '\n';
-  asd.play(d.get_audio_frame_test());
-  asd.play(d.get_audio_frame_test());
-  asd.play(d.get_audio_frame_test());
+  //asd.play(d.get_sine_audio_frame());
+  asd.play(d.get_audio_frame());
+  asd.play(d.get_audio_frame());
+  asd.play(d.get_audio_frame());
+  asd.play(d.get_audio_frame());
+  asd.play(d.get_audio_frame());
+  //asd.play(d.get_audio_frame_test());
 }
 
 int main(int argc, char *argv[]) {
+  std::cout << "makefile test\n";
   std::string filename = "CarRace.mp4";
 	if (argc > 1) {
 		filename = argv[1];

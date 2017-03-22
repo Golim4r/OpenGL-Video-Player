@@ -7,6 +7,7 @@ extern "C"
     #include <libavcodec/avcodec.h>
     #include <libavformat/avformat.h>
     #include <libswscale/swscale.h>
+    #include <libswresample/swresample.h>
 }
 #endif
 
@@ -43,6 +44,11 @@ private:
   struct SwrContext *swr_ctx = NULL;
   double            fps;
   double            aspect_ratio;
+  
+  //experimental swresample stuff
+  
+  
+  //end of experimental
 
   bool has_audio = false;
   
@@ -76,8 +82,8 @@ public:
   uint8_t* get_video_frame();
   void clear_frame_for_writing();
   
-  std::vector<short> get_audio_frame();
-  std::vector<uint8_t> get_audio_frame_test();
+  std::vector<uint8_t> get_sine_audio_frame();
+  std::vector<uint8_t> get_audio_frame();
   
   const int & get_width();
   const int & get_height();

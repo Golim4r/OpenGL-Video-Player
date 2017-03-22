@@ -121,11 +121,30 @@ Audioplayer::~Audioplayer() {
 }
 
 void Audioplayer::play() {
-  //alBufferData(buffer, AL_FORMAT_MONO8, data, size, freq);
-  //TEST_ERROR("buffer copy");
+  std::cout << "play without parameter\n";
+  float freq = 300.f;
+	int seconds = 4;
+	unsigned sample_rate = 22050;
+	size_t buf_size = seconds * sample_rate;
 
-  /*alSourcei(source, AL_BUFFER, buffer);
-  TEST_ERROR("buffer binding");*/
+  short *samples;
+  samples = new short[buf_size];
+  for(int i=0; i<buf_size; ++i) {
+      samples[i] = 32760 * std::sin( (2.f*float(M_PI)*freq)/sample_rate * i );
+  }
+
+  ALuint temp_buffer;
+  alGenBuffers(1, &temp_buffer);
+  TEST_ERROR("temp buffer generation");
+
+  alBufferData(temp_buffer, AL_FORMAT_MONO16, samples, buf_size, sample_rate);
+  TEST_ERROR("buffer copy");
+
+	//alSourcePlay(source);
+	//TEST_ERROR("source playing");
+
+  alSourcei(source, AL_BUFFER, temp_buffer);
+  TEST_ERROR("buffer binding");
   
 	alSourcePlay(source);
 	TEST_ERROR("source playing");
@@ -138,27 +157,16 @@ void Audioplayer::play() {
 	}
 }
 
+void Audioplayer::play(std::vector<uint8_t> buffer) {
+  std::cout << "play with parameter\n";
+  ALuint temp_buffer;
+  alGenBuffers(1,&temp_buffer);
+  TEST_ERROR("temp buffer generation");
 
-void Audioplayer::play(short* buf) {
-  float freq = 300.f;
-	int seconds = 4;
-	unsigned sample_rate = 22050;
-	size_t buf_size = seconds * sample_rate;
-
-  short *samples;
-  samples = new short[buf_size];
-  for(int i=0; i<buf_size; ++i) {
-      samples[i] = 32760 * std::sin( (2.f*float(M_PI)*freq)/sample_rate * i );
-  }
-
-
-  alBufferData(buffer, AL_FORMAT_MONO16, samples, buf_size, sample_rate);
+  alBufferData(temp_buffer, AL_FORMAT_MONO16, buffer.data(), buffer.size(), 44100);
   TEST_ERROR("buffer copy");
 
-	alSourcePlay(source);
-	TEST_ERROR("source playing");
-
-  alSourcei(source, AL_BUFFER, buffer);
+	alSourcei(source, AL_BUFFER, temp_buffer);
   TEST_ERROR("buffer binding");
   
 	alSourcePlay(source);

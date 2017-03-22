@@ -14,6 +14,7 @@ public:
   Pulseplayer();
   ~Pulseplayer();
 
+  void play();
   void play(std::vector<short> samples);
   void play(std::vector<uint8_t> samples);
 };
