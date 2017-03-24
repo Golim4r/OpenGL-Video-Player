@@ -214,82 +214,76 @@ void Decoder::SaveFrame(int iFrame) {
  
 bool Decoder::read_frame() {
   bool frameComplete = false;
-  if(av_read_frame(pFormatCtx, &packet)>=0) {
+  if (av_read_frame(pFormatCtx, &packet) >= 0) {
     // Is this a packet from the video stream?
-    if(packet.stream_index==videoStream) {
+    if (packet.stream_index == videoStream) {
       // Decode video frame
       avcodec_decode_video2(pCodecCtx, pFrame, &frameFinished, &packet);
-      
       // Did we get a video frame?
-      if(frameFinished) {
+      if (frameFinished) {
         // Convert the image from its native format to RGB
-        sws_scale(	sws_ctx, (uint8_t const * const *)pFrame->data,
-              pFrame->linesize, 0, pCodecCtx->height,
-              pFrameRGB->data,pFrameRGB->linesize);
+        sws_scale(sws_ctx, (uint8_t const * const *)pFrame->data,
+          pFrame->linesize, 0, pCodecCtx->height,
+          pFrameRGB->data, pFrameRGB->linesize);
         frameComplete = true;
         //std::cout << "video frame timestamp: " << pFrame->pkt_pts << '\n';
         //std::cout << "wrote frame " << i << '\n';
-      } else {
+      }
+      else {
         //std::cout << "no finished frame" << std::endl;
       }
-    } else if (packet.stream_index==audioStream && first_time){
+    }
+    else if (packet.stream_index == audioStream && first_time) {
       while (packet.size > 0) {
         int gotFrame = 0;
-		int result = avcodec_decode_audio4(aCodecCtx, aFrame, &gotFrame, &packet);
-		if (result >= 0 && gotFrame) {
-			packet.size -= result;
-			packet.data += result;
-			
-			//printAudioFrameInfo(aCodecCtx, aFrame);
-			//std::cout << "frame data: " << aFrame->data[0] << '\n';
-			//seems to be the same
-			//std::cout << "frame data: " << aFrame->extended_data[0] << '\n';
-			
-		const uint8_t **in = (const uint8_t **)aFrame->extended_data;
-        uint8_t *out = NULL;
-        int out_linesize;
-        av_samples_alloc(   &out,
-                            &out_linesize,
-                            2,
-                            44100,
-                            AV_SAMPLE_FMT_U8,
-                            0);
+        int result = avcodec_decode_audio4(aCodecCtx, aFrame, &gotFrame, &packet);
+        if (result >= 0 && gotFrame) {
+          packet.size -= result;
+          packet.data += result;
 
-        int ret = swr_convert(  swr_ctx,
-                                &out,
-                                44100,
-                                in,
-                                aFrame->nb_samples);
-		std::cout << "ret: " << ret << '\n';
-    //std::cout << "audio frame timestamp: " << 
-        //aFrame->pkt_pts/1024 << '\n';
-			
-        std::vector<uint8_t> audio_frame;
-        //audio_frame.resize(ret * aCodecCtx->channels);
+          const uint8_t **in = (const uint8_t **)aFrame->extended_data;
+          uint8_t *out = NULL;
+          int out_linesize;
+          av_samples_alloc(&out,
+            &out_linesize,
+            2,
+            44100,
+            AV_SAMPLE_FMT_U8,
+            0);
 
-        //std::memcpy(audio_frame.data(), out, audio_frame.size());
+          int ret = swr_convert(swr_ctx,
+            &out,
+            44100,
+            in,
+            aFrame->nb_samples);
+          std::cout << "ret: " << ret << '\n';
+          //std::cout << "audio frame timestamp: " << 
+          //aFrame->pkt_pts/1024 << '\n';
 
-        //buffered_audio_frames
-        for (int i=0; i<1024*2; ++i) {
-          //audio_frame.push_back(out[i]);
-          audio_frame.push_back(out[i]);
+          std::vector<uint8_t> audio_frame;
+          //audio_frame.resize(ret * aCodecCtx->channels);
+
+          //std::memcpy(audio_frame.data(), out, audio_frame.size());
+
+          //buffered_audio_frames
+          for (int i = 0; i<1024 * 2; ++i) {
+            //audio_frame.push_back(out[i]);
+            audio_frame.push_back(out[i]);
+          }
+          audio_frames.put(audio_frame);
+          //audio_frames.put(audio_frame);
+          //float f;
+          //std::memcpy(&f, aFrame->data[1],sizeof(f));
+          //std::cout << "f: " << f << '\n'; 
         }
-        audio_frames.put(audio_frame);
-        //audio_frames.put(audio_frame);
-      //float f;
-      //std::memcpy(&f, aFrame->data[1],sizeof(f));
-      //std::cout << "f: " << f << '\n'; 
-		} else {
-			packet.size = 0;
-			packet.data = nullptr;
-		}
-			
+        else {
+          packet.size = 0;
+          packet.data = nullptr;
+        }
       }
-	  //first_time = false;
-    } //else {
-      // Free the packet that was allocated by av_read_frame
-      av_free_packet(&packet);
-    //}
+    }
+    // Free the packet that was allocated by av_read_frame
+    av_free_packet(&packet);
   }
   return frameComplete;
 }
