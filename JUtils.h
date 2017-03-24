@@ -82,7 +82,11 @@ class JTimedIterationManager {
 public:
   JTimedIterationManager() = delete;
   JTimedIterationManager(double ms) : counter(0), interval(ms) {}
-  
+  //NOT TESTED:
+  JTimedIterationManager(const JTimedIterationManager & other, double ms) : interval(ms) {
+    t_start = other.get_start_point();
+  }
+
   void set_interval(double ms) {
     interval = ms;
   }
@@ -91,6 +95,16 @@ public:
     t_start = std::chrono::high_resolution_clock::now();
   }
   
+  //NOT TESTED:
+  void wait(const unsigned long long & pts) {
+    time_till_next = interval - 
+      std::chrono::duration<double>(std::chrono::high_resolution_clock::now() - 
+      t_start).count() * 1000 + interval*pts;
+    if (time_till_next>0) {
+      std::this_thread::sleep_for(std::chrono::microseconds(static_cast<int>(time_till_next * 1000)));
+    }
+  }
+
   void wait() {
     //std::cout << "arrived at:              " << std::chrono::duration<double>(std::chrono::high_resolution_clock::now() - t_start).count()*1000 << '\n';
     //std::cout << "counter:                 " << counter << '\n';
