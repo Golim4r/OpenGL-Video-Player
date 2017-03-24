@@ -117,6 +117,10 @@ public:
     ++counter;
     //std::cout << "released at:             " << std::chrono::duration<double>(std::chrono::high_resolution_clock::now() - t_start).count()*1000 << "\n --------------------- \n";
   }
+
+  const std::chrono::high_resolution_clock::time_point & get_start_point() const {
+    return t_start;
+  }
 private:
   std::chrono::high_resolution_clock::time_point t_start;
   unsigned long long counter;
