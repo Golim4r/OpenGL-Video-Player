@@ -26,33 +26,37 @@ extern "C"
 #define BUFFERED_FRAMES_COUNT 120
 
 template <typename T>
-class Buffer{
+class Buffer {
 private:
   std::vector<T> _data;
-  std::vector<std::atomic<bool>> _written;
-  size_t _read_id, _write_id, _size;
-  T nothing_ready;
+  std::vector<std::atomic<bool>> _occupied;
+  int _size, _read_position, _write_position;
+  T temp;
 public:
-  Buffer(int size) : _data(size), _written(size), 
-    _read_id(size-1), _write_id(0), _size(size) {  }
-  ~Buffer() {}
+  Buffer(int size) : 
+    _data(size), 
+    _occupied(size), 
+    _size(size), 
+    _read_position(0), 
+    _write_position(0) {}
 
-  void put(const T & elem) {
+  void put(T elem) {
     //todo: not busy wait
-    while (_written[_write_id]) { }
-
-    _data[_write_id] = elem;
-    _written[_write_id] = true;
-    _write_id = (_write_id+1) % _size;
+    while (_occupied[_write_position]) {}
+    _data[_write_position] = elem;
+    _occupied[_write_position] = true;
+    _write_position = ++_write_position % _size;
   }
 
-  const T get() {
-    //int prev = _read_id;
-    _read_id = ++_read_id % _size;
-    while (!_written[_read_id]) { }
-    _written[_read_id] = false;
-    return _data[_read_id];
-	}
+  const T & get() {
+    //todo: not busy wait
+    while (!_occupied[_read_position]) { }
+    //todo: move
+    temp = _data[_read_position];
+    _occupied[_read_position] = false;
+    _read_position = ++_read_position % _size;
+    return temp;
+  }
 };
 
 class Decoder {
