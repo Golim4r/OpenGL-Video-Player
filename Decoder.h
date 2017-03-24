@@ -43,7 +43,7 @@ public:
   void put(T elem) {
     //todo: not busy wait
     while (_occupied[_write_position]) {}
-    _data[_write_position] = elem;
+    _data[_write_position] = std::move(elem);
     _occupied[_write_position] = true;
     _write_position = ++_write_position % _size;
   }
