@@ -51,8 +51,7 @@ public:
   const T & get() {
     //todo: not busy wait
     while (!_occupied[_read_position]) { }
-    //todo: move
-    temp = _data[_read_position];
+    temp = std::move(_data[_read_position]);
     _occupied[_read_position] = false;
     _read_position = ++_read_position % _size;
     return temp;
