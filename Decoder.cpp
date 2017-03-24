@@ -266,7 +266,7 @@ bool Decoder::read_frame() {
           //std::memcpy(audio_frame.data(), out, audio_frame.size());
 
           //buffered_audio_frames
-          for (int i = 0; i<1024 * 2; ++i) {
+          for (int i = 0; i<ret * aCodecCtx->channels; ++i) {
             //audio_frame.push_back(out[i]);
             audio_frame.push_back(out[i]);
           }
