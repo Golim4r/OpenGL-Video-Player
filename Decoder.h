@@ -25,6 +25,36 @@ extern "C"
 
 #define BUFFERED_FRAMES_COUNT 120
 
+template <typename T>
+class Buffer{
+private:
+  std::vector<T> _data;
+  std::vector<std::atomic<bool>> _written;
+  size_t _read_id, _write_id, _size;
+  T nothing_ready;
+public:
+  Buffer(int size) : _data(size), _written(size), 
+    _read_id(size-1), _write_id(0), _size(size) {  }
+  ~Buffer() {}
+
+  void put(const T & elem) {
+    //todo: not busy wait
+    while (_written[_write_id]) { }
+
+    _data[_write_id] = elem;
+    _written[_write_id] = true;
+    _write_id = (_write_id+1) % _size;
+  }
+
+  const T get() {
+    //int prev = _read_id;
+    _read_id = ++_read_id % _size;
+    while (!_written[_read_id]) { }
+    _written[_read_id] = false;
+    return _data[_read_id];
+	}
+};
+
 class Decoder {
 private:
   AVFormatContext   *pFormatCtx = NULL;
@@ -44,20 +74,15 @@ private:
   struct SwrContext *swr_ctx = NULL;
   double            fps;
   double            aspect_ratio;
-  
-  //experimental swresample stuff
-  
-  
-  //end of experimental
 
   bool has_audio = false;
   
   std::vector<std::vector<uint8_t>> buffered_video_frames;
-  std::vector<std::vector<short>> buffered_audio_frames;
+  std::vector<std::vector<uint8_t>> buffered_audio_frames;
   std::vector<uint8_t> buffer_riesen_audio;  
-
-  std::vector<uint16_t> audio_test_buffer;
   
+  Buffer<std::vector<uint8_t>> audio_frames;  
+
   std::atomic<bool> done;
   
   std::atomic<int> current_frame_reading, current_frame_writing;

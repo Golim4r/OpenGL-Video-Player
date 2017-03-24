@@ -7,24 +7,36 @@
 #include "Pulseplayer.h"
 #include "JUtils.h"
 
-
 void audiothread(Decoder & d) {
   Pulseplayer asd;
   //Audioplayer asd;
   
   //asd.play();
   //asd.play(d.get_sine_audio_frame());
-  asd.play(d.get_audio_frame());
-  asd.play(d.get_audio_frame());
-  asd.play(d.get_audio_frame());
-  asd.play(d.get_audio_frame());
-  asd.play(d.get_audio_frame());
-  //asd.play(d.get_audio_frame_test());
+  
+  while(true) {
+  //for (int i=0; i<100; ++i) {
+    asd.play(d.get_audio_frame());
+  }
 }
 
 int main(int argc, char *argv[]) {
-  std::cout << "makefile test\n";
   std::string filename = "CarRace.mp4";
+  Buffer<int> buf(15);
+
+
+	/*std::thread t1([&] {  
+		for (int i=0; i<200; ++i) {
+			buf.put(i);
+		}
+	});
+
+	std::thread t2([&] {	    
+    while (buf.get() != 199 ) { }
+	});
+	
+  t1.join();
+  t2.join();*/
 	if (argc > 1) {
 		filename = argv[1];
 	}
