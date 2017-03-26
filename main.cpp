@@ -15,7 +15,7 @@ void audiothread(Decoder & d) {
   //asd.play(d.get_sine_audio_frame());
   
   while(true) {
-  //for (int i=0; i<100; ++i) {
+  //while (!d.get_done()) {
     asd.play(d.get_audio_frame());
   }
 }

@@ -84,6 +84,7 @@ private:
   std::vector<std::vector<uint8_t>> buffered_audio_frames;
   std::vector<uint8_t> buffer_riesen_audio;  
   
+  std::vector<uint8_t> audio_frame;
   Buffer<std::vector<uint8_t>> audio_frames;  
 
   std::atomic<bool> done;
@@ -117,6 +118,8 @@ public:
   const int & get_height();
 
   const double & get_aspect_ratio();
+
+  const bool & get_done();
 };
 
 #endif

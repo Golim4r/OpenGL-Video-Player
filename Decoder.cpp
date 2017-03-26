@@ -256,21 +256,26 @@ bool Decoder::read_frame() {
             44100,
             in,
             aFrame->nb_samples);
-          std::cout << "ret: " << ret << '\n';
+          //std::cout << "ret: " << ret << '\n';
           //std::cout << "audio frame timestamp: " << 
           //aFrame->pkt_pts/1024 << '\n';
 
-          std::vector<uint8_t> audio_frame;
+          //std::vector<uint8_t> audio_frame;
           //audio_frame.resize(ret * aCodecCtx->channels);
 
           //std::memcpy(audio_frame.data(), out, audio_frame.size());
 
           //buffered_audio_frames
+          audio_frame.resize(ret*aCodecCtx->channels);
           for (int i = 0; i<ret * aCodecCtx->channels; ++i) {
+            audio_frame[i] = out[i];
             //audio_frame.push_back(out[i]);
-            audio_frame.push_back(out[i]);
           }
-          audio_frames.put(audio_frame);
+          //if (audio_frame.size() > 44100) {
+            audio_frames.put(audio_frame);
+            //audio_frame.clear();
+          //}
+          
           //audio_frames.put(audio_frame);
           //float f;
           //std::memcpy(&f, aFrame->data[1],sizeof(f));
@@ -344,4 +349,8 @@ const int & Decoder::get_height() {
 
 const double & Decoder::get_aspect_ratio() {
   return aspect_ratio;
+}
+
+const bool & Decoder::get_done() {
+  return done;
 }

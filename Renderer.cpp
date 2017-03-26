@@ -80,7 +80,7 @@ void keyboard_global(unsigned char key, int x, int y) {
 
 GLWindow::GLWindow(int video_width, int video_height, float section_top, float section_bottom, float section_left, float section_right) : 
     _video_width(video_width), _video_height(video_height) {
-  //std::cout << "trying to create a window" << std::endl;
+  std::cout << "trying to create a window" << std::endl;
 
   vertices[6]   = section_top;
   vertices[13]  = section_top;
@@ -91,10 +91,14 @@ GLWindow::GLWindow(int video_width, int video_height, float section_top, float s
   vertices[12]  = section_right;
   vertices[19]  = section_right;
   
+  std::cout << "noch da1?\n";  
   glutInitDisplayMode(GLUT_RGB);
+  std::cout << "noch da1.1?\n";  
 	glutInitWindowSize(400,500);		// width=400pixels height=500pixels
+  std::cout << "noch da1.2?\n";  
 	id = glutCreateWindow("Triangle");	// create window
 
+  std::cout << "noch da2?\n";  
 	// Initialise glew
 	glewExperimental = GL_TRUE; //needed as it is old!
 	GLenum err = glewInit();
@@ -106,6 +110,8 @@ GLWindow::GLWindow(int video_width, int video_height, float section_top, float s
 		  std::cout<<"Driver supports OpenGL 3.3:"<<std::endl;
 	   }
 	}
+  
+  std::cout << "noch da?\n";  
 
   glClearColor(0.0,0.0,0.0,0.0);	// set background to black
   gluOrtho2D(0,400,0,500);		// how object is mapped to window
@@ -212,6 +218,9 @@ Renderer::Renderer(Decoder &dec) : _dec(dec) {
   char* argv[] = {"egal"};
   int win;
 	glutInit(&argc, argv);		// initialize GLUT system
+
+  std::cout << "dec width and height: " << _dec.get_width() <<
+    ", " << _dec.get_height() << '\n';
 
   //create an OpenGL window with video size and section sizes , float section_top, float section_bottom, float section_left, float section_right
   _windows.emplace_back(GLWindow(_dec.get_width(), _dec.get_height(), 0.0f, 1.0f, 0.0f, 0.5f));

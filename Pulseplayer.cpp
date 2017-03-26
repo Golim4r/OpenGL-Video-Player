@@ -11,8 +11,8 @@ Pulseplayer::Pulseplayer() {
     std::cout << "no we dont\n";
   }
 
-  float freq = 440.f;
-  int seconds = 5;
+  /*float freq = 440.f;
+  int seconds = 1;
   unsigned int sample_rate = 44100;
   size_t buf_size = seconds * sample_rate;
 
@@ -27,35 +27,26 @@ Pulseplayer::Pulseplayer() {
   }
   if (pa_simple_drain(s, &error) < 0) {
     std::cerr << "drain nicht\n";
-  }
+  }*/
 }
 
 Pulseplayer::~Pulseplayer() { 
   if (s) pa_simple_free(s);  
 }
 
-void Pulseplayer::play(std::vector<short> samples) {
-  if (pa_simple_write(s, samples.data(), samples.size(), &error)
-      < 0) {
-    std::cerr << "nunja, wohl nicht\n";
-  }
-  if (pa_simple_drain(s, &error) < 0) {
-    std::cerr << "drain nicht\n";
-  }
-}
-
-
 void Pulseplayer::play(std::vector<uint8_t> samples) {
-  if (pa_simple_write(s, samples.data(), samples.size(), &error)
+  pa_simple_write(s, samples.data(), samples.size(), &error);
+  /*if (pa_simple_write(s, samples.data(), samples.size(), &error)
       < 0) {
     std::cerr << "nunja, wohl nicht\n";
   }
   if (pa_simple_drain(s, &error) < 0) {
     std::cerr << "drain nicht\n";
-  }
+  }*/
 }
 
-void Pulseplayer::play() {
+
+/*void Pulseplayer::play() {
   
   float freq = 440.f;
   int seconds = 5;
@@ -74,4 +65,4 @@ void Pulseplayer::play() {
   if (pa_simple_drain(s, &error) < 0) {
     std::cerr << "drain nicht\n";
   }
-}
+}*/
