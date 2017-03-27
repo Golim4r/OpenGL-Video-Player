@@ -28,7 +28,7 @@ Renderer* current_renderer;
 
 void redraw_global() {
   //std::cout << "drawing\n";
-	current_renderer->frame_data = current_renderer->_dec.get_video_frame();
+	std::vector<uint8_t> vf = current_renderer->_dec.get_video_frame();
   
   for (int i=0; i<current_renderer->get_num_windows(); ++i) {
 		glutSetWindow(current_renderer->get_window_id(i));
@@ -63,7 +63,7 @@ void redraw_global() {
       glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     }
     
-    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, current_renderer->_dec.get_width(), current_renderer->_dec.get_height(), GL_RGB, GL_UNSIGNED_BYTE, current_renderer->frame_data);
+    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, current_renderer->_dec.get_width(), current_renderer->_dec.get_height(), GL_RGB, GL_UNSIGNED_BYTE, vf.data());
     glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
     glutSwapBuffers();
 	}
@@ -73,9 +73,11 @@ void keyboard_global(unsigned char key, int x, int y) {
   if( key == 'q' || key == 27 ) {
     current_renderer->_dec.stop();
     glutLeaveMainLoop();
+    std::cout << "eskappe!\n";
+  } else if (key == 'f') {
+    glutFullScreen();
   }
 }
-
 
 
 GLWindow::GLWindow(int video_width, int video_height, float section_top, float section_bottom, float section_left, float section_right) : 
@@ -90,15 +92,12 @@ GLWindow::GLWindow(int video_width, int video_height, float section_top, float s
   vertices[26]  = section_left;
   vertices[12]  = section_right;
   vertices[19]  = section_right;
-  
-  std::cout << "noch da1?\n";  
+
   glutInitDisplayMode(GLUT_RGB);
-  std::cout << "noch da1.1?\n";  
 	glutInitWindowSize(400,500);		// width=400pixels height=500pixels
-  std::cout << "noch da1.2?\n";  
+
 	id = glutCreateWindow("Triangle");	// create window
 
-  std::cout << "noch da2?\n";  
 	// Initialise glew
 	glewExperimental = GL_TRUE; //needed as it is old!
 	GLenum err = glewInit();
@@ -111,8 +110,6 @@ GLWindow::GLWindow(int video_width, int video_height, float section_top, float s
 	   }
 	}
   
-  std::cout << "noch da?\n";  
-
   glClearColor(0.0,0.0,0.0,0.0);	// set background to black
   gluOrtho2D(0,400,0,500);		// how object is mapped to window
   glutDisplayFunc(redraw_global);		// set window's display callback
@@ -219,14 +216,9 @@ Renderer::Renderer(Decoder &dec) : _dec(dec) {
   int win;
 	glutInit(&argc, argv);		// initialize GLUT system
 
-  std::cout << "dec width and height: " << _dec.get_width() <<
-    ", " << _dec.get_height() << '\n';
-
   //create an OpenGL window with video size and section sizes , float section_top, float section_bottom, float section_left, float section_right
   _windows.emplace_back(GLWindow(_dec.get_width(), _dec.get_height(), 0.0f, 1.0f, 0.0f, 0.5f));
   _windows.emplace_back(GLWindow(_dec.get_width(), _dec.get_height(), 0.0f, 1.0f, 0.5f, 1.0f));
-
-	//glutMainLoop();
 }
 
 
@@ -235,7 +227,46 @@ void Renderer::run() {
 }
 
 void Renderer::redraw()	{
+  //std::cout << "drawing\n";
+  std::vector<uint8_t> vf = _dec.get_video_frame();
 
+  for (auto & w : _windows) {
+		glutSetWindow(w.id);
+    glFlush();
+    
+    //int & window_width = 
+    //  current_renderer->_windows[i].window_width;
+    //int & window_height = 
+    //  current_renderer->_windows[i].window_height;
+
+    //if (glutGet(GLUT_WINDOW_WIDTH)  != window_width ||
+    //    glutGet(GLUT_WINDOW_HEIGHT) != window_height) {
+    //  window_width  = glutGet(GLUT_WINDOW_WIDTH);
+    //  window_height = glutGet(GLUT_WINDOW_HEIGHT);
+
+
+    //  double current_ap = static_cast<double>(window_width) / 
+    //                   static_cast<double>(window_height);
+    //  double desired_ap = 
+    //  static_cast<double>(current_renderer->_dec.get_width()) / 
+    //  static_cast<double>(current_renderer->_dec.get_height());
+
+    //  std::cout << "aspect ratio: " << window_width << 
+    //              ":" << window_height << '\n';
+
+
+    //  std::cout << "ap: " << current_ap;
+    //  std::cout << " should be: " << desired_ap << '\n';
+
+
+
+      //glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    //}
+    
+    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, _dec.get_width(), _dec.get_height(), GL_RGB, GL_UNSIGNED_BYTE, vf.data());
+    glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+    glutSwapBuffers();
+	}
 }
 
 void Renderer::keyboard(unsigned char key, int x, int y) {
@@ -249,6 +280,3 @@ int Renderer::get_num_windows() {
 int Renderer::get_window_id(int win) {
   return _windows[win].id;
 }
-
-
-

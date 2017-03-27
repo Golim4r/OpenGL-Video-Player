@@ -42,15 +42,19 @@ public:
 
   void put(T elem) {
     //todo: not busy wait
-    while (_occupied[_write_position]) {}
+    while (_occupied[_write_position]) {
+      //std::cout << "cant write\n";
+    }
     _data[_write_position] = std::move(elem);
     _occupied[_write_position] = true;
     _write_position = ++_write_position % _size;
   }
 
   const T & get() {
-    //todo: not busy wait
-    while (!_occupied[_read_position]) { }
+    //todo: not busy waitasdasd
+    while (!_occupied[_read_position]) { 
+      //std::cout << "cant read!"<< _data[0].size() << "\n";
+    }
     temp = std::move(_data[_read_position]);
     _occupied[_read_position] = false;
     _read_position = ++_read_position % _size;
@@ -75,29 +79,27 @@ private:
   uint8_t           *buffer = NULL;
   struct SwsContext *sws_ctx = NULL;
   struct SwrContext *swr_ctx = NULL;
-  double            fps;
+  double            fps, aps;
   double            aspect_ratio;
 
   bool has_audio = false;
   
-  std::vector<std::vector<uint8_t>> buffered_video_frames;
-  std::vector<std::vector<uint8_t>> buffered_audio_frames;
-  std::vector<uint8_t> buffer_riesen_audio;  
+  //std::vector<std::vector<uint8_t>> buffered_video_frames;
+  //std::vector<std::vector<uint8_t>> buffered_audio_frames;
+  //std::vector<uint8_t> buffer_riesen_audio;  
   
-  std::vector<uint8_t> audio_frame;
-  Buffer<std::vector<uint8_t>> audio_frames;  
+  std::vector<uint8_t> video_frame;
+  Buffer<std::vector<uint8_t>> video_frames;
+  Buffer<size_t>video_time_stamps;
 
-  std::atomic<bool> done;
-  
-  std::atomic<int> current_frame_reading, current_frame_writing;
-  std::vector<std::atomic<bool>> written;
+  std::vector<uint8_t> audio_frame;
+  Buffer<std::vector<uint8_t>> audio_frames;
+  Buffer<size_t> audio_time_stamps;
 
   void SaveFrame(int iFrame);
   bool read_frame();
 
-
-  
-  JTimedIterationManager tim;
+  JTimedIterationManager vtim, atim;
   
   bool first_time = true;
 public:
@@ -105,21 +107,24 @@ public:
   Decoder(std::string filename = "CarRace.mp4");
   ~Decoder();
   
+  std::atomic<bool> done;
+
+  std::atomic<size_t> audio_ts, video_ts;
+  
   void run();
   void stop();
   
-  uint8_t* get_video_frame();
+  std::vector<uint8_t> get_video_frame();
   void clear_frame_for_writing();
   
-  std::vector<uint8_t> get_sine_audio_frame();
   std::vector<uint8_t> get_audio_frame();
   
   const int & get_width();
   const int & get_height();
-
   const double & get_aspect_ratio();
 
-  const bool & get_done();
+  const int & get_sample_rate();
+  const int & get_channels();
 };
 
 #endif

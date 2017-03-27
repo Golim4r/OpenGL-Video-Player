@@ -9,6 +9,7 @@
 #include <GL/freeglut.h>
 
 #include <thread>
+#include <fstream>
 
 #include "Decoder.h"
 
@@ -44,8 +45,6 @@ public:
 class Renderer {
 private:
   void keyboard(unsigned char key, int x, int y);
-  void redraw();
-
 
   //Decoder& _dec;
 public:
@@ -54,8 +53,9 @@ public:
   void run();
   //should be private, but redraw must be global?
   Decoder& _dec;
-  uint8_t* frame_data;
+  //uint8_t* frame_data;
 
+  void redraw();
 
   std::vector<GLWindow> _windows;
   

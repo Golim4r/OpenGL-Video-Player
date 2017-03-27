@@ -1,11 +1,12 @@
 #include "Decoder.h"
 
 Decoder::Decoder(std::string filename) : 
+  video_frames(BUFFERED_FRAMES_COUNT),
+  video_time_stamps(BUFFERED_FRAMES_COUNT),
   audio_frames(BUFFERED_FRAMES_COUNT), 
-  current_frame_reading(0), 
-  current_frame_writing(0), 
-  written(BUFFERED_FRAMES_COUNT), 
-  tim(106) 
+  audio_time_stamps(BUFFERED_FRAMES_COUNT),
+  vtim(106), atim(107),
+  done(false)
 {
   try {
     std::cout << "opening file " << filename << std::endl;
@@ -66,11 +67,12 @@ Decoder::Decoder(std::string filename) :
     // Get a pointer to the codec context for the video stream
     pCodecCtxOrig=pFormatCtx->streams[videoStream]->codec;
     
-    fps = static_cast<double>(pFormatCtx->streams[videoStream]->avg_frame_rate.num) / 
-          static_cast<double>(pFormatCtx->streams[videoStream]->avg_frame_rate.den);
+
+    fps = av_q2d(pFormatCtx->streams[videoStream]->avg_frame_rate);
+
     //set the video refresh interval in ms
-    tim.set_interval(1000.f/fps);
-    
+    vtim.set_interval(1000.f/fps);
+    atim.set_interval(1000.f/aCodecCtx->sample_rate);
 
     // Find the decoder for the video stream
     pCodec=avcodec_find_decoder(pCodecCtxOrig->codec_id);
@@ -116,10 +118,6 @@ Decoder::Decoder(std::string filename) :
                   aCodecCtx->sample_rate, 0, NULL);
 	  swr_init(swr_ctx);
     
-    //initialize the buffer vector
-    buffered_video_frames.resize(BUFFERED_FRAMES_COUNT);
-    buffered_audio_frames.resize(BUFFERED_FRAMES_COUNT);
-    std::for_each(buffered_video_frames.begin(), buffered_video_frames.end(), [=](std::vector<uint8_t> &v) { v.resize(numBytes); });    
   } catch (int e) {
     std::vector<std::string> error_strings = 
     { "Error opening file\n",
@@ -161,30 +159,16 @@ Decoder::~Decoder() {
 void Decoder::run() {
   std::cout << "Decoder trying to run!\n";
   done = false;
-  tim.start();
-  //for (int i=0; i<BUFFERED_FRAMES_COUNT; ++i) {
+  vtim.start();
+  atim.set_start(vtim.get_start());
   while(!done) {
-    for (int i=0; i<BUFFERED_FRAMES_COUNT; ++i) {
-      //wait for a completed frame
-      while (!read_frame()) {
-        if (done) break;
-      }
-      while (written[current_frame_writing]) {
-        if (done) break;
-      }
-      
-      //copy the read frame into buffered_video_frames
-      std::memcpy(buffered_video_frames[i].data(), buffer, numBytes);
-      written[current_frame_writing] = true;
-      current_frame_writing = (current_frame_writing + 1) % BUFFERED_FRAMES_COUNT;
-    }
+    read_frame();
   }
+  std::cout << "decoder thread finished\n";
 }
 
 void Decoder::stop() {
-  for (int i=0; i<BUFFERED_FRAMES_COUNT; ++i) {
-    written[i] = false;
-  }
+  std::cout << "trying to stop decoder\n";
   done = true;
 }
  
@@ -226,6 +210,13 @@ bool Decoder::read_frame() {
           pFrame->linesize, 0, pCodecCtx->height,
           pFrameRGB->data, pFrameRGB->linesize);
         frameComplete = true;
+
+        video_frame.resize(numBytes);
+        std::memcpy(video_frame.data(), buffer, numBytes);
+        video_frames.put(video_frame);
+        
+        //std::cout<<"best effort: " << av_frame_get_best_effort_timestamp(pFrame)<<'\n';
+        video_time_stamps.put(pFrame->pkt_pts);
         //std::cout << "video frame timestamp: " << pFrame->pkt_pts << '\n';
         //std::cout << "wrote frame " << i << '\n';
       }
@@ -256,30 +247,12 @@ bool Decoder::read_frame() {
             44100,
             in,
             aFrame->nb_samples);
-          //std::cout << "ret: " << ret << '\n';
-          //std::cout << "audio frame timestamp: " << 
-          //aFrame->pkt_pts/1024 << '\n';
 
-          //std::vector<uint8_t> audio_frame;
-          //audio_frame.resize(ret * aCodecCtx->channels);
-
-          //std::memcpy(audio_frame.data(), out, audio_frame.size());
-
-          //buffered_audio_frames
           audio_frame.resize(ret*aCodecCtx->channels);
-          for (int i = 0; i<ret * aCodecCtx->channels; ++i) {
-            audio_frame[i] = out[i];
-            //audio_frame.push_back(out[i]);
-          }
-          //if (audio_frame.size() > 44100) {
-            audio_frames.put(audio_frame);
-            //audio_frame.clear();
-          //}
+          std::memcpy(audio_frame.data(), out, ret*aCodecCtx->channels);
           
-          //audio_frames.put(audio_frame);
-          //float f;
-          //std::memcpy(&f, aFrame->data[1],sizeof(f));
-          //std::cout << "f: " << f << '\n'; 
+          audio_frames.put(audio_frame);
+          audio_time_stamps.put(aFrame->pkt_pts);
         }
         else {
           packet.size = 0;
@@ -293,49 +266,24 @@ bool Decoder::read_frame() {
   return frameComplete;
 }
 
-uint8_t* Decoder::get_video_frame(){
-  tim.wait();
-  if (written[current_frame_reading]) {
-    clear_frame_for_writing();
-    return buffered_video_frames[current_frame_reading].data();
-  }
-  if (current_frame_reading == 0) {
-    return buffered_video_frames[BUFFERED_FRAMES_COUNT-1].data();
-  }
-  return buffered_video_frames[current_frame_reading-1].data();
-}
+std::vector<uint8_t> Decoder::get_video_frame() {
+  video_ts = video_time_stamps.get();
 
-void Decoder::clear_frame_for_writing() {
-  written[current_frame_reading] = false;
-  current_frame_reading = (current_frame_reading + 1) % BUFFERED_FRAMES_COUNT;
-}
+  //std::cout << "vts: " << video_ts << '\n';
+  vtim.wait();
 
-std::vector<uint8_t> Decoder::get_sine_audio_frame() {
-  std::cout << "returning a sine wave\n";
-  std::vector<short> sine_short;
-  std::vector<uint8_t> sine_uint8_t;  
-
-  float freq = 800.f;
-  int seconds = 4;
-  int sample_rate = 44100;
-  int buf_size = seconds * sample_rate;
-
-  sine_short.resize(buf_size);
-  for (int i=0; i<buf_size; ++i) {
-    sine_short[i] = 32760 * std::sin((2.f*3.14159*freq)/sample_rate * i);
-  }
-
-  sine_uint8_t.resize(sine_short.size() * sizeof(short));
-  std::memcpy(sine_uint8_t.data(), sine_short.data(), 
-    sizeof(short) * sine_short.size());
-
-  return sine_uint8_t;
+  return video_frames.get();
 }
 
 std::vector<uint8_t> Decoder::get_audio_frame() {
-	//return buffer_riesen_audio;
-  //return audio_frames.get();
-  //return buffered_audio_frames[buffered_audio_frames.size() - 1];
+  audio_ts = audio_time_stamps.get();
+
+  //if the audio is too late, remove a few samples
+  if (atim.wait(audio_ts)<0) {
+    std::vector<uint8_t> temp = audio_frames.get();
+    temp.resize(temp.size()-6);
+    return temp;
+  }
   return audio_frames.get();
 }
 
@@ -351,6 +299,10 @@ const double & Decoder::get_aspect_ratio() {
   return aspect_ratio;
 }
 
-const bool & Decoder::get_done() {
-  return done;
+const int & Decoder::get_sample_rate() {
+  return aCodecCtx->sample_rate;
+}
+
+const int & Decoder::get_channels() {
+  return aCodecCtx->channels;
 }

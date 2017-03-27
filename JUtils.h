@@ -82,9 +82,13 @@ class JTimedIterationManager {
 public:
   JTimedIterationManager() = delete;
   JTimedIterationManager(double ms) : counter(0), interval(ms) {}
-  //NOT TESTED:
-  JTimedIterationManager(const JTimedIterationManager & other, double ms) : interval(ms) {
-    t_start = other.get_start_point();
+
+  const std::chrono::high_resolution_clock::time_point & get_start() {
+    return t_start;
+  }  
+
+  void set_start(const std::chrono::high_resolution_clock::time_point & start) {
+    t_start = start;
   }
 
   void set_interval(double ms) {
@@ -95,14 +99,25 @@ public:
     t_start = std::chrono::high_resolution_clock::now();
   }
   
-  //NOT TESTED:
-  void wait(const unsigned long long & pts) {
-    time_till_next = interval - 
+  double get_timing(size_t pts) {
+    return interval - 
       std::chrono::duration<double>(std::chrono::high_resolution_clock::now() - 
       t_start).count() * 1000 + interval*pts;
+  }
+
+
+  float wait(size_t pts) {
+    //std::cout << "arrived at:              " << std::chrono::duration<double>(std::chrono::high_resolution_clock::now() - t_start).count()*1000 << '\n';
+    //std::cout << "counter:                 " << counter << '\n';
+    //std::cout << "should be released at:   " << (counter+1) * interval << '\n';
+    time_till_next = interval - std::chrono::duration<double>(std::chrono::high_resolution_clock::now() - t_start).count()*1000 + interval*pts;
+    //std::cout << "calculated waiting time with pts: " << time_till_next << '\n';
     if (time_till_next>0) {
-      std::this_thread::sleep_for(std::chrono::microseconds(static_cast<int>(time_till_next * 1000)));
+      std::this_thread::sleep_for(std::chrono::microseconds(static_cast<int>(time_till_next*1000)));
     }
+
+    return time_till_next;
+    //std::cout << "released at:             " << std::chrono::duration<double>(std::chrono::high_resolution_clock::now() - t_start).count()*1000 << "\n --------------------- \n";
   }
 
   void wait() {

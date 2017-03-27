@@ -8,38 +8,28 @@
 #include "JUtils.h"
 
 void audiothread(Decoder & d) {
-  Pulseplayer asd;
+  Pulseplayer pp(d.get_sample_rate(), d.get_channels());
   //Audioplayer asd;
-  
+  //JTimedIterationManager pp_tim(d.tim, 1.f / 44100.f);
   //asd.play();
   //asd.play(d.get_sine_audio_frame());
   
   while(true) {
-  //while (!d.get_done()) {
-    asd.play(d.get_audio_frame());
+  //while (!d.done) {
+    pp.play(d.get_audio_frame());
+    if (d.done) { break; }
   }
+  std::cout << "audiothread is done...\n";
 }
 
 int main(int argc, char *argv[]) {
   std::string filename = "CarRace.mp4";
   Buffer<int> buf(15);
 
-
-	/*std::thread t1([&] {  
-		for (int i=0; i<200; ++i) {
-			buf.put(i);
-		}
-	});
-
-	std::thread t2([&] {	    
-    while (buf.get() != 199 ) { }
-	});
-	
-  t1.join();
-  t2.join();*/
 	if (argc > 1) {
 		filename = argv[1];
 	}
+  //std::cout << "was ist denn hier los?";
   Decoder d(filename);
   
   Renderer r(d);
@@ -50,7 +40,12 @@ int main(int argc, char *argv[]) {
   std::thread dt(&Decoder::run, &d);
   std::thread ap(audiothread, std::ref(d));
   r.run();
-  
+
+  //while (true) {
+    //r.redraw();
+    //if (d.get_done()) { break; }
+  //}
+
   ap.join();
   dt.join();  
   
