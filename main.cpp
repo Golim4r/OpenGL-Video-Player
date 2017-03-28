@@ -24,33 +24,27 @@ void audiothread(Decoder & d) {
 
 int main(int argc, char *argv[]) {
   std::string filename = "CarRace.mp4";
-  Buffer<int> buf(15);
 
-	if (argc > 1) {
-		filename = argv[1];
+  if (argc > 1) {
+    filename = argv[1];
 	}
-  //std::cout << "was ist denn hier los?";
+
   Decoder d(filename);
-  
+
   Renderer r(d);
   JDurationManager dm;
-  
+
   dm.start();
 
   std::thread dt(&Decoder::run, &d);
   std::thread ap(audiothread, std::ref(d));
   r.run();
 
-  //while (true) {
-    //r.redraw();
-    //if (d.get_done()) { break; }
-  //}
-
   ap.join();
   dt.join();  
-  
+
   dm.stop();
   dm.print();
-  
+
 	return 0;
 }

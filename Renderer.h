@@ -21,6 +21,7 @@ private:
 	GLint posAttrib, colAttrib, texAttrib;
   
   //std::vector<GLfloat> vertices = {
+
   GLfloat vertices[28] = {
   //  Position      Color             Texcoords
       -1.0f,  1.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, // Top-left
@@ -34,11 +35,15 @@ private:
       2, 3, 0
   };
   
+  float desired_aspect_ratio;
+  bool bound_top, bound_bottom, bound_left, bound_right;
 public:
   GLWindow(int video_width, int video_height, float section_top, float section_bottom, float section_left, float section_right);
   ~GLWindow();
 
   int id;
+
+  void update_section();
   int window_width, window_height;
 };
 

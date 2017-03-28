@@ -27,6 +27,9 @@ const GLchar* fragmentSource =
 Renderer* current_renderer;
 
 void redraw_global() {
+  if (current_renderer->_dec.done) {
+    glutLeaveMainLoop();
+  }
   //std::cout << "drawing\n";
 	std::vector<uint8_t> vf = current_renderer->_dec.get_video_frame();
   
@@ -41,25 +44,10 @@ void redraw_global() {
 
     if (glutGet(GLUT_WINDOW_WIDTH)  != window_width ||
         glutGet(GLUT_WINDOW_HEIGHT) != window_height) {
-      window_width  = glutGet(GLUT_WINDOW_WIDTH);
-      window_height = glutGet(GLUT_WINDOW_HEIGHT);
+      current_renderer->_windows[i].update_section();     
 
-
-      double current_ap = static_cast<double>(window_width) / 
-                          static_cast<double>(window_height);
-      double desired_ap = 
-        static_cast<double>(current_renderer->_dec.get_width()) / 
-        static_cast<double>(current_renderer->_dec.get_height());
-
-      std::cout << "aspect ratio: " << window_width << 
-                   ":" << window_height << '\n';
-
-
-      std::cout << "ap: " << current_ap;
-      std::cout << " should be: " << desired_ap << '\n';
-
-
-
+      glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
+      glDepthMask(GL_TRUE);
       glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     }
     
@@ -74,8 +62,10 @@ void keyboard_global(unsigned char key, int x, int y) {
     current_renderer->_dec.stop();
     glutLeaveMainLoop();
     std::cout << "eskappe!\n";
-  } else if (key == 'f') {
+  } else if (key == 'F') {
     glutFullScreen();
+  } else if (key == 'f') {
+    glutReshapeWindow(400,400);
   }
 }
 
@@ -93,6 +83,27 @@ GLWindow::GLWindow(int video_width, int video_height, float section_top, float s
   vertices[12]  = section_right;
   vertices[19]  = section_right;
 
+  float image_section_height = section_bottom - section_top;
+  float image_section_width  = section_right  - section_left;
+
+  std::cout << "sections sizes: " << image_section_height << ":" << image_section_width << '\n';
+
+  desired_aspect_ratio = (video_width *image_section_width) / 
+                         (video_height*image_section_height);
+
+  //desired_aspect_ratio = video_width / static_cast<float>(video_height);
+  std::cout << "dar: " << desired_aspect_ratio << '\n';
+
+  bound_top    = (section_top    != 0);
+  bound_bottom = (section_bottom != 1);
+  bound_left   = (section_left   != 0);
+  bound_right  = (section_right  != 1);
+
+  if (bound_top)    { std::cout << "topbound!\n"; }
+  if (bound_bottom) { std::cout << "botbound!\n"; }
+  if (bound_left)   { std::cout << "lefbound!\n"; }
+  if (bound_right)  { std::cout << "rigbound!\n"; }
+  
   glutInitDisplayMode(GLUT_RGB);
 	glutInitWindowSize(400,500);		// width=400pixels height=500pixels
 
@@ -205,6 +216,80 @@ GLWindow::~GLWindow() {
 	glDeleteVertexArrays(1, &vao);
 }
 
+void GLWindow::update_section() {
+      window_width  = glutGet(GLUT_WINDOW_WIDTH);
+      window_height = glutGet(GLUT_WINDOW_HEIGHT);
+
+      double current_ap = static_cast<double>(window_width) / 
+                          static_cast<double>(window_height);
+
+
+      if (current_ap > desired_aspect_ratio) {
+        //std::cout << "window is too wide\n";
+
+        //coordinates go from -1 to 1
+        float width_ratio =
+          2*window_height * desired_aspect_ratio / window_width;
+
+        if (bound_left && !bound_right) {
+          //image has to start left, shift it by -1
+          vertices[0]  = -1;
+          vertices[7]  = width_ratio-1;
+          vertices[14] = width_ratio-1;
+          vertices[21] = -1;
+        } else if (bound_right && !bound_left) {
+          //image has to start right, shift it
+          vertices[0]  = 1-width_ratio;
+          vertices[7]  = 1;
+          vertices[14] = 1;
+          vertices[21] = 1-width_ratio;
+        } else {
+          //image needs to be in the middle:
+          float shift = (2 - width_ratio) / 2;
+
+          vertices[0]  = (1-shift) - width_ratio;
+          vertices[7]  = width_ratio - 1 + shift;
+          vertices[14] = width_ratio - 1 + shift;
+          vertices[21] = (1-shift) - width_ratio;
+
+        }
+        //image needs to go from bottom to top;
+        vertices[1]  =  1;
+        vertices[8]  =  1;
+        vertices[15] = -1;
+        vertices[22] = -1;
+      } else {
+        //std::cout << "window is too narrow\n";
+        float height_ratio = 2*window_width / desired_aspect_ratio
+                             / window_height;
+        
+        if (bound_top && !bound_bottom) {
+          vertices[1]  = 1;
+          vertices[8]  = 1;
+          vertices[15] = 1-height_ratio;
+          vertices[22] = 1-height_ratio;
+        } else if (bound_bottom && !bound_top) {
+          vertices[1]  = height_ratio-1;
+          vertices[8]  = height_ratio-1;
+          vertices[15] = -1;
+          vertices[22] = -1;
+        } else {
+          float shift = (2 - height_ratio) / 2;
+          vertices[1]  = (1-shift) - height_ratio;
+          vertices[8]  = (1-shift) - height_ratio;
+          vertices[15] = height_ratio - 1 + shift;
+          vertices[22] = height_ratio - 1 + shift;
+        }
+        vertices[0]  = -1;
+        vertices[7]  =  1;
+        vertices[14] =  1;
+        vertices[21] = -1;
+      }
+
+      //vertices[6] -= 0.1f;
+      //glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+}
 
 /*****************************************************
 * RENDERER
@@ -217,8 +302,18 @@ Renderer::Renderer(Decoder &dec) : _dec(dec) {
 	glutInit(&argc, argv);		// initialize GLUT system
 
   //create an OpenGL window with video size and section sizes , float section_top, float section_bottom, float section_left, float section_right
-  _windows.emplace_back(GLWindow(_dec.get_width(), _dec.get_height(), 0.0f, 1.0f, 0.0f, 0.5f));
-  _windows.emplace_back(GLWindow(_dec.get_width(), _dec.get_height(), 0.0f, 1.0f, 0.5f, 1.0f));
+  /*_windows.emplace_back(GLWindow(_dec.get_width(), _dec.get_height(), 0.0f, 0.5f, 0.0f, 0.33333f));
+  _windows.emplace_back(GLWindow(_dec.get_width(), _dec.get_height(), 0.0f, 0.5f, 0.0f, 0.33333f));
+  _windows.emplace_back(GLWindow(_dec.get_width(), _dec.get_height(), 0.0f, 0.5f, 0.33333f, 0.66666f));
+  _windows.emplace_back(GLWindow(_dec.get_width(), _dec.get_height(), 0.5f, 1.0f, 0.66666f, 1.0f));
+  _windows.emplace_back(GLWindow(_dec.get_width(), _dec.get_height(), 0.5f, 1.0f, 0.33333f, 0.66666f));
+  _windows.emplace_back(GLWindow(_dec.get_width(), _dec.get_height(), 0.5f, 1.0f, 0.66666f, 1.0f));*/
+
+
+  _windows.emplace_back(GLWindow(_dec.get_width(), _dec.get_height(), 0.0f, 0.5f, 0.0f, 0.5f));
+  _windows.emplace_back(GLWindow(_dec.get_width(), _dec.get_height(), 0.0f, 0.5f, 0.5f, 1.0f));
+  _windows.emplace_back(GLWindow(_dec.get_width(), _dec.get_height(), 0.5f, 1.0f, 0.0f, 0.5f));
+  _windows.emplace_back(GLWindow(_dec.get_width(), _dec.get_height(), 0.5f, 1.0f, 0.5f, 1.0f));
 }
 
 
@@ -241,6 +336,7 @@ void Renderer::redraw()	{
 
     //if (glutGet(GLUT_WINDOW_WIDTH)  != window_width ||
     //    glutGet(GLUT_WINDOW_HEIGHT) != window_height) {
+    
     //  window_width  = glutGet(GLUT_WINDOW_WIDTH);
     //  window_height = glutGet(GLUT_WINDOW_HEIGHT);
 

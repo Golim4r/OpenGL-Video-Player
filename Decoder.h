@@ -32,18 +32,22 @@ private:
   std::vector<std::atomic<bool>> _occupied;
   int _size, _read_position, _write_position;
   T temp;
+  std::atomic<bool> _done;
 public:
   Buffer(int size) : 
     _data(size), 
     _occupied(size), 
     _size(size), 
     _read_position(0), 
-    _write_position(0) {}
+    _write_position(0),
+    _done(false) {}
 
   void put(T elem) {
     //todo: not busy wait
     while (_occupied[_write_position]) {
       //std::cout << "cant write\n";
+      if (_done) { return; }
+      //return;
     }
     _data[_write_position] = std::move(elem);
     _occupied[_write_position] = true;
@@ -54,11 +58,17 @@ public:
     //todo: not busy waitasdasd
     while (!_occupied[_read_position]) { 
       //std::cout << "cant read!"<< _data[0].size() << "\n";
+      //if (_done) { return temp; }
+      //return temp;
     }
     temp = std::move(_data[_read_position]);
     _occupied[_read_position] = false;
     _read_position = ++_read_position % _size;
     return temp;
+  }
+
+  void stop() {
+    //_done = true;
   }
 };
 

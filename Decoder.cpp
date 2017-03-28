@@ -161,14 +161,22 @@ void Decoder::run() {
   done = false;
   vtim.start();
   atim.set_start(vtim.get_start());
+  size_t ctr = 0;
   while(!done) {
-    read_frame();
+    while(read_frame()) { }
+    av_seek_frame(pFormatCtx, videoStream, 0, AVSEEK_FLAG_ANY);
+    std::cout << "next round!\n";
   }
+  stop();
   std::cout << "decoder thread finished\n";
 }
 
 void Decoder::stop() {
   std::cout << "trying to stop decoder\n";
+  video_frames.stop();
+  video_time_stamps.stop();
+  audio_frames.stop();
+  audio_time_stamps.stop();
   done = true;
 }
  
@@ -197,7 +205,7 @@ void Decoder::SaveFrame(int iFrame) {
 }
  
 bool Decoder::read_frame() {
-  bool frameComplete = false;
+  //bool frameComplete = false;
   if (av_read_frame(pFormatCtx, &packet) >= 0) {
     // Is this a packet from the video stream?
     if (packet.stream_index == videoStream) {
@@ -209,7 +217,7 @@ bool Decoder::read_frame() {
         sws_scale(sws_ctx, (uint8_t const * const *)pFrame->data,
           pFrame->linesize, 0, pCodecCtx->height,
           pFrameRGB->data, pFrameRGB->linesize);
-        frameComplete = true;
+        //frameComplete = true;
 
         video_frame.resize(numBytes);
         std::memcpy(video_frame.data(), buffer, numBytes);
@@ -224,7 +232,7 @@ bool Decoder::read_frame() {
         //std::cout << "no finished frame" << std::endl;
       }
     }
-    else if (packet.stream_index == audioStream && first_time) {
+    else if (packet.stream_index == audioStream) {
       while (packet.size > 0) {
         int gotFrame = 0;
         int result = avcodec_decode_audio4(aCodecCtx, aFrame, &gotFrame, &packet);
@@ -262,8 +270,11 @@ bool Decoder::read_frame() {
     }
     // Free the packet that was allocated by av_read_frame
     av_free_packet(&packet);
+  } else {
+    std::cout << "end of stream?\n";
+    return false;
   }
-  return frameComplete;
+  return true;
 }
 
 std::vector<uint8_t> Decoder::get_video_frame() {
