@@ -10,6 +10,7 @@
 
 #include <thread>
 #include <fstream>
+#include <string>
 
 #include "Decoder.h"
 
@@ -47,10 +48,16 @@ public:
   int window_width, window_height;
 };
 
+
+struct Config {
+  float sec_top, sec_bot, sec_left, sec_right;
+};
+
 class Renderer {
 private:
   void keyboard(unsigned char key, int x, int y);
 
+  std::vector<Config> read_config();
   //Decoder& _dec;
 public:
   Renderer(Decoder &dec);

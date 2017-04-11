@@ -275,10 +275,10 @@ void GLWindow::update_section() {
           vertices[22] = -1;
         } else {
           float shift = (2 - height_ratio) / 2;
-          vertices[1]  = (1-shift) - height_ratio;
-          vertices[8]  = (1-shift) - height_ratio;
-          vertices[15] = height_ratio - 1 + shift;
-          vertices[22] = height_ratio - 1 + shift;
+          vertices[1] = height_ratio - 1 + shift;
+          vertices[8] = height_ratio - 1 + shift;
+          vertices[15]  = (1-shift) - height_ratio;
+          vertices[22]  = (1-shift) - height_ratio;
         }
         vertices[0]  = -1;
         vertices[7]  =  1;
@@ -301,21 +301,64 @@ Renderer::Renderer(Decoder &dec) : _dec(dec) {
   int win;
 	glutInit(&argc, argv);		// initialize GLUT system
 
-  //create an OpenGL window with video size and section sizes , float section_top, float section_bottom, float section_left, float section_right
-  /*_windows.emplace_back(GLWindow(_dec.get_width(), _dec.get_height(), 0.0f, 0.5f, 0.0f, 0.33333f));
-  _windows.emplace_back(GLWindow(_dec.get_width(), _dec.get_height(), 0.0f, 0.5f, 0.0f, 0.33333f));
-  _windows.emplace_back(GLWindow(_dec.get_width(), _dec.get_height(), 0.0f, 0.5f, 0.33333f, 0.66666f));
-  _windows.emplace_back(GLWindow(_dec.get_width(), _dec.get_height(), 0.5f, 1.0f, 0.66666f, 1.0f));
-  _windows.emplace_back(GLWindow(_dec.get_width(), _dec.get_height(), 0.5f, 1.0f, 0.33333f, 0.66666f));
-  _windows.emplace_back(GLWindow(_dec.get_width(), _dec.get_height(), 0.5f, 1.0f, 0.66666f, 1.0f));*/
+  //create an OpenGL window with video size and section sizes
+  //auto cfg = read_config();
+  for (auto & c : read_config()) {
+    _windows.emplace_back(GLWindow
+      (_dec.get_width(), _dec.get_height(),
+      c.sec_top, c.sec_bot, c.sec_left, c.sec_right));
+  }
 
-
-  _windows.emplace_back(GLWindow(_dec.get_width(), _dec.get_height(), 0.0f, 0.5f, 0.0f, 0.5f));
-  _windows.emplace_back(GLWindow(_dec.get_width(), _dec.get_height(), 0.0f, 0.5f, 0.5f, 1.0f));
-  _windows.emplace_back(GLWindow(_dec.get_width(), _dec.get_height(), 0.5f, 1.0f, 0.0f, 0.5f));
-  _windows.emplace_back(GLWindow(_dec.get_width(), _dec.get_height(), 0.5f, 1.0f, 0.5f, 1.0f));
 }
 
+std::vector<std::string> split_string
+  (std::string s, const std::string & delimiter) {
+  std::vector<std::string> result;
+
+  size_t pos = 0;
+  while ((pos = s.find(delimiter)) != std::string::npos) {
+    result.emplace_back(s.substr(0,pos));
+    s.erase(0,pos + delimiter.length());
+  }
+
+  if (s.size() > 0) {
+    result.emplace_back(s);
+  }
+
+  return result;
+}
+
+std::vector<Config> Renderer::read_config() {
+  std::vector<Config> result;
+  std::ifstream is("config.cfg");
+  std::string line;
+
+  while (!is.eof()) {
+    
+    //read a line
+    std::getline(is, line);
+    //skip comment lines
+    if (line[0] != '#') {
+
+      auto v = split_string(line, ":");
+      if (v.size() != 4) {
+        std::cerr << "ERROR: wrong number of parameters in line "
+          << line << '\n';
+      } else {
+        Config c;
+        c.sec_top   = std::stof(v[0]);
+        c.sec_bot   = std::stof(v[1]);
+        c.sec_left  = std::stof(v[2]);
+        c.sec_right = std::stof(v[3]);
+        result.push_back(c);
+      }
+    }
+  }
+  
+  std::cout << "result.size(): " << result.size() << '\n';
+
+  return result;
+}
 
 void Renderer::run() {
   glutMainLoop();
