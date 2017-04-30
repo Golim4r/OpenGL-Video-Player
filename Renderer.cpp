@@ -56,7 +56,6 @@ void redraw_global() {
       glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     }
 	}
-
 }
 
 void keyboard_global(unsigned char key, int x, int y) {
@@ -73,7 +72,7 @@ void keyboard_global(unsigned char key, int x, int y) {
 
 
 GLWindow::GLWindow(int video_width, int video_height, float section_top, float section_bottom, float section_left, float section_right) : 
-    _video_width(video_width), _video_height(video_height) {
+  _video_width(video_width), _video_height(video_height) {
   //std::cout << "trying to create a window" << std::endl;
 
   vertices[6]   = section_top;
@@ -88,23 +87,14 @@ GLWindow::GLWindow(int video_width, int video_height, float section_top, float s
   float image_section_height = section_bottom - section_top;
   float image_section_width  = section_right  - section_left;
 
-  //std::cout << "sections sizes: " << image_section_height << ":" << image_section_width << '\n';
-
   desired_aspect_ratio = (video_width *image_section_width) / 
                          (video_height*image_section_height);
-
-  //std::cout << "dar: " << desired_aspect_ratio << '\n';
 
   bound_top    = (section_top    != 0);
   bound_bottom = (section_bottom != 1);
   bound_left   = (section_left   != 0);
   bound_right  = (section_right  != 1);
 
-  //if (bound_top)    { std::cout << "topbound!\n"; }
-  //if (bound_bottom) { std::cout << "botbound!\n"; }
-  //if (bound_left)   { std::cout << "lefbound!\n"; }
-  //if (bound_right)  { std::cout << "rigbound!\n"; }
-  
   glutInitDisplayMode(GLUT_RGB);
 	glutInitWindowSize(480,270);		// width=400pixels height=500pixels
 
@@ -123,7 +113,6 @@ GLWindow::GLWindow(int video_width, int video_height, float section_top, float s
 	}
   
   glClearColor(0.0,0.0,0.0,0.0);	// set background to black
-  //gluOrtho2D(0,400,0,500);		// how object is mapped to window
   glutDisplayFunc(redraw_global);		// set window's display callback
   glutIdleFunc(redraw_global);
   //glutIdleFunc(std::bind(&Renderer::redraw, this));
@@ -154,19 +143,16 @@ GLWindow::GLWindow(int video_width, int video_height, float section_top, float s
 
 	// Create and compile the vertex shader
 	GLuint vertexShader = glCreateShader(GL_VERTEX_SHADER);
-	//vertexShader = glCreateShader(GL_VERTEX_SHADER);
 	glShaderSource(vertexShader, 1, &vertexSource, NULL);
 	glCompileShader(vertexShader);
 
 	// Create and compile the fragment shader
 	GLuint fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
-	//fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
 	glShaderSource(fragmentShader, 1, &fragmentSource, NULL);
 	glCompileShader(fragmentShader);
 
 	// Link the vertex and fragment shader into a shader program
 	GLuint shaderProgram = glCreateProgram();
-	//shaderProgram = glCreateProgram();
 	glAttachShader(shaderProgram, vertexShader);
 	glAttachShader(shaderProgram, fragmentShader);
 	glBindFragDataLocation(shaderProgram, 0, "outColor");
@@ -175,17 +161,14 @@ GLWindow::GLWindow(int video_width, int video_height, float section_top, float s
 
 	// Specify the layout of the vertex data
 	GLint posAttrib = glGetAttribLocation(shaderProgram, "position");
-	//posAttrib = glGetAttribLocation(shaderProgram, "position");
 	glEnableVertexAttribArray(posAttrib);
 	glVertexAttribPointer(posAttrib, 2, GL_FLOAT, GL_FALSE, 7 * sizeof(GLfloat), 0);
 
 	GLint colAttrib = glGetAttribLocation(shaderProgram, "color");
-	//colAttrib = glGetAttribLocation(shaderProgram, "color");
 	glEnableVertexAttribArray(colAttrib);
 	glVertexAttribPointer(colAttrib, 3, GL_FLOAT, GL_FALSE, 7 * sizeof(GLfloat), (void*)(2 * sizeof(GLfloat)));
 
 	GLint texAttrib = glGetAttribLocation(shaderProgram, "texcoord");
-	//texAttrib = glGetAttribLocation(shaderProgram, "texcoord");
 	glEnableVertexAttribArray(texAttrib);
 	glVertexAttribPointer(texAttrib, 2, GL_FLOAT, GL_FALSE, 7 * sizeof(GLfloat), (void*)(5 * sizeof(GLfloat)));
 
@@ -203,7 +186,6 @@ GLWindow::GLWindow(int video_width, int video_height, float section_top, float s
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
   
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-  //std::cout << "window created" << std::endl;
 }
 
 GLWindow::~GLWindow() {
