@@ -71,7 +71,9 @@ void keyboard_global(unsigned char key, int x, int y) {
 }
 
 
-GLWindow::GLWindow(int video_width, int video_height, float section_top, float section_bottom, float section_left, float section_right) : 
+GLWindow::GLWindow(int video_width, int video_height, 
+  float section_top, float section_bottom, 
+  float section_left, float section_right) : 
   _video_width(video_width), _video_height(video_height) {
   //std::cout << "trying to create a window" << std::endl;
 
