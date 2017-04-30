@@ -98,7 +98,7 @@ GLWindow::GLWindow(int video_width, int video_height,
   bound_right  = (section_right  != 1);
 
   glutInitDisplayMode(GLUT_RGB);
-	glutInitWindowSize(480,270);		// width=400pixels height=500pixels
+  glutInitWindowSize(480,270);		// width=400pixels height=500pixels
 
 	id = glutCreateWindow("Triangle");	// create window
 
@@ -203,78 +203,75 @@ GLWindow::~GLWindow() {
 }
 
 void GLWindow::update_section() {
-      window_width  = glutGet(GLUT_WINDOW_WIDTH);
-      window_height = glutGet(GLUT_WINDOW_HEIGHT);
+  window_width  = glutGet(GLUT_WINDOW_WIDTH);
+  window_height = glutGet(GLUT_WINDOW_HEIGHT);
 
-      double current_ap = static_cast<double>(window_width) / 
-                          static_cast<double>(window_height);
+  double current_ap = static_cast<double>(window_width) / 
+                      static_cast<double>(window_height);
 
+  if (current_ap > desired_aspect_ratio) {
+    //std::cout << "window is too wide\n";
 
-      if (current_ap > desired_aspect_ratio) {
-        //std::cout << "window is too wide\n";
+    //coordinates go from -1 to 1
+    float width_ratio =
+      2*window_height * desired_aspect_ratio / window_width;
 
-        //coordinates go from -1 to 1
-        float width_ratio =
-          2*window_height * desired_aspect_ratio / window_width;
+    if (bound_left && !bound_right) {
+      //image has to start left, shift it by -1
+      vertices[0]  = -1;
+      vertices[7]  = width_ratio-1;
+      vertices[14] = width_ratio-1;
+      vertices[21] = -1;
+    } else if (bound_right && !bound_left) {
+      //image has to start right, shift it
+      vertices[0]  = 1-width_ratio;
+      vertices[7]  = 1;
+      vertices[14] = 1;
+      vertices[21] = 1-width_ratio;
+    } else {
+      //image needs to be in the middle:
+      float shift = (2 - width_ratio) / 2;
 
-        if (bound_left && !bound_right) {
-          //image has to start left, shift it by -1
-          vertices[0]  = -1;
-          vertices[7]  = width_ratio-1;
-          vertices[14] = width_ratio-1;
-          vertices[21] = -1;
-        } else if (bound_right && !bound_left) {
-          //image has to start right, shift it
-          vertices[0]  = 1-width_ratio;
-          vertices[7]  = 1;
-          vertices[14] = 1;
-          vertices[21] = 1-width_ratio;
-        } else {
-          //image needs to be in the middle:
-          float shift = (2 - width_ratio) / 2;
+      vertices[0]  = (1-shift) - width_ratio;
+      vertices[7]  = width_ratio - 1 + shift;
+      vertices[14] = width_ratio - 1 + shift;
+      vertices[21] = (1-shift) - width_ratio;
+    }
+    
+    //image needs to go from bottom to top;
+    vertices[1]  =  1;
+    vertices[8]  =  1;
+    vertices[15] = -1;
+    vertices[22] = -1;
+  } else {
+    //std::cout << "window is too narrow\n";
+    float height_ratio = 2*window_width / desired_aspect_ratio
+                         / window_height;
+    
+    if (bound_top && !bound_bottom) {
+      vertices[1]  = 1;
+      vertices[8]  = 1;
+      vertices[15] = 1-height_ratio;
+      vertices[22] = 1-height_ratio;
+    } else if (bound_bottom && !bound_top) {
+      vertices[1]  = height_ratio-1;
+      vertices[8]  = height_ratio-1;
+      vertices[15] = -1;
+      vertices[22] = -1;
+    } else {
+      float shift = (2 - height_ratio) / 2;
+      vertices[1] = height_ratio - 1 + shift;
+      vertices[8] = height_ratio - 1 + shift;
+      vertices[15]  = (1-shift) - height_ratio;
+      vertices[22]  = (1-shift) - height_ratio;
+    }
+    vertices[0]  = -1;
+    vertices[7]  =  1;
+    vertices[14] =  1;
+    vertices[21] = -1;
+  }
 
-          vertices[0]  = (1-shift) - width_ratio;
-          vertices[7]  = width_ratio - 1 + shift;
-          vertices[14] = width_ratio - 1 + shift;
-          vertices[21] = (1-shift) - width_ratio;
-
-        }
-        //image needs to go from bottom to top;
-        vertices[1]  =  1;
-        vertices[8]  =  1;
-        vertices[15] = -1;
-        vertices[22] = -1;
-      } else {
-        //std::cout << "window is too narrow\n";
-        float height_ratio = 2*window_width / desired_aspect_ratio
-                             / window_height;
-        
-        if (bound_top && !bound_bottom) {
-          vertices[1]  = 1;
-          vertices[8]  = 1;
-          vertices[15] = 1-height_ratio;
-          vertices[22] = 1-height_ratio;
-        } else if (bound_bottom && !bound_top) {
-          vertices[1]  = height_ratio-1;
-          vertices[8]  = height_ratio-1;
-          vertices[15] = -1;
-          vertices[22] = -1;
-        } else {
-          float shift = (2 - height_ratio) / 2;
-          vertices[1] = height_ratio - 1 + shift;
-          vertices[8] = height_ratio - 1 + shift;
-          vertices[15]  = (1-shift) - height_ratio;
-          vertices[22]  = (1-shift) - height_ratio;
-        }
-        vertices[0]  = -1;
-        vertices[7]  =  1;
-        vertices[14] =  1;
-        vertices[21] = -1;
-      }
-
-      //vertices[6] -= 0.1f;
-      //glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-	    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+  glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
 }
 
 /*****************************************************
