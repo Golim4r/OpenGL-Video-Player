@@ -58,8 +58,8 @@ Decoder::Decoder(std::string filename) :
         throw 8;
       }
 
-      std::cout << "This stream has " << aCodecCtx->channels << " channels and a sample rate of " << aCodecCtx->sample_rate << "Hz" << std::endl;
-      std::cout << "The data is in the format " << av_get_sample_fmt_name(aCodecCtx->sample_fmt) << std::endl;
+      //std::cout << "This stream has " << aCodecCtx->channels << " channels and a sample rate of " << aCodecCtx->sample_rate << "Hz" << std::endl;
+      //std::cout << "The data is in the format " << av_get_sample_fmt_name(aCodecCtx->sample_fmt) << std::endl;
     } else {
       std::cout << "has no audio stream\n";
     }
@@ -154,30 +154,33 @@ Decoder::~Decoder() {
 	
 	// Close the video file
 	avformat_close_input(&pFormatCtx);
- }
+
+  std::cout << "Decoder is destroyed\n";
+}
  
 void Decoder::run() {
-  std::cout << "Decoder trying to run!\n";
+  //std::cout << "Decoder trying to run!\n";
   done = false;
   vtim.start();
   atim.set_start(vtim.get_start());
   size_t ctr = 0;
   while(!done) {
-    while(read_frame()) { }
+    while(read_frame() && !done) { }
     av_seek_frame(pFormatCtx, videoStream, 0, AVSEEK_FLAG_ANY);
-    std::cout << "next round!\n";
+    //std::cout << "next round!\n";
   }
   stop();
-  std::cout << "decoder thread finished\n";
+  //std::cout << "decoder thread finished\n";
 }
 
 void Decoder::stop() {
-  std::cout << "trying to stop decoder\n";
+  //std::cout << "trying to stop decoder\n";
   video_frames.stop();
   video_time_stamps.stop();
   audio_frames.stop();
   audio_time_stamps.stop();
   done = true;
+  //std::cout << "decoder stopped\n";
 }
  
 //void Decoder::SaveFrame(AVFrame *pFrame, int width, int height, int iFrame) {
@@ -224,7 +227,7 @@ bool Decoder::read_frame() {
         video_frames.put(video_frame);
         
         //std::cout<<"best effort: " << av_frame_get_best_effort_timestamp(pFrame)<<'\n';
-        video_time_stamps.put(pFrame->pkt_pts);
+        video_time_stamps.put(pFrame->pkt_pts/pFrame->pkt_duration);
         //std::cout << "video frame timestamp: " << pFrame->pkt_pts << '\n';
         //std::cout << "wrote frame " << i << '\n';
       }
@@ -261,6 +264,9 @@ bool Decoder::read_frame() {
           
           audio_frames.put(audio_frame);
           audio_time_stamps.put(aFrame->pkt_pts);
+
+          //free(in);
+          free(out);
         }
         else {
           packet.size = 0;
@@ -281,13 +287,14 @@ std::vector<uint8_t> Decoder::get_video_frame() {
   video_ts = video_time_stamps.get();
 
   //std::cout << "vts: " << video_ts << '\n';
-  vtim.wait();
+  vtim.wait(video_ts);
 
   return video_frames.get();
 }
 
 std::vector<uint8_t> Decoder::get_audio_frame() {
   audio_ts = audio_time_stamps.get();
+  //std::cout << "ats: " << audio_ts << '\n';
 
   //if the audio is too late, remove a few samples
   if (atim.wait(audio_ts)<0) {

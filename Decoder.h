@@ -58,7 +58,10 @@ public:
     //todo: not busy waitasdasd
     while (!_occupied[_read_position]) { 
       //std::cout << "cant read!"<< _data[0].size() << "\n";
-      //if (_done) { return temp; }
+      if (_done) {
+        temp = T(); 
+        return temp; 
+      }
       //return temp;
     }
     temp = std::move(_data[_read_position]);
@@ -122,8 +125,8 @@ public:
   std::atomic<size_t> audio_ts, video_ts;
   
   void run();
-  void stop();
-  
+  void stop();  
+
   std::vector<uint8_t> get_video_frame();
   void clear_frame_for_writing();
   

@@ -25,9 +25,11 @@ Pulseplayer::Pulseplayer(int sample_rate, int channels) {
 
 Pulseplayer::~Pulseplayer() { 
   if (s) pa_simple_free(s);  
+  std::cout << "Pulseplayer is destroyed\n";
 }
 
 void Pulseplayer::play(std::vector<uint8_t> samples) {
+  if (samples.size() == 0) { return; }
   pa_simple_write(s, samples.data(), samples.size(), &error);
 }
 

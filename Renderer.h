@@ -61,6 +61,7 @@ private:
   //Decoder& _dec;
 public:
   Renderer(Decoder &dec);
+  ~Renderer();
 
   void run();
   //should be private, but redraw must be global?

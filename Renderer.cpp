@@ -33,6 +33,8 @@ void redraw_global() {
   //std::cout << "drawing\n";
 	std::vector<uint8_t> vf = current_renderer->_dec.get_video_frame();
   
+  if (vf.size() == 0) {return;}
+
   for (int i=0; i<current_renderer->get_num_windows(); ++i) {
 		glutSetWindow(current_renderer->get_window_id(i));
     glFlush();
@@ -41,7 +43,10 @@ void redraw_global() {
       current_renderer->_windows[i].window_width;
     int & window_height = 
       current_renderer->_windows[i].window_height;
-
+    
+    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, current_renderer->_dec.get_width(), current_renderer->_dec.get_height(), GL_RGB, GL_UNSIGNED_BYTE, vf.data());
+    glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+    glutSwapBuffers();
     if (glutGet(GLUT_WINDOW_WIDTH)  != window_width ||
         glutGet(GLUT_WINDOW_HEIGHT) != window_height) {
       current_renderer->_windows[i].update_section();     
@@ -50,11 +55,8 @@ void redraw_global() {
       glDepthMask(GL_TRUE);
       glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     }
-    
-    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, current_renderer->_dec.get_width(), current_renderer->_dec.get_height(), GL_RGB, GL_UNSIGNED_BYTE, vf.data());
-    glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
-    glutSwapBuffers();
 	}
+
 }
 
 void keyboard_global(unsigned char key, int x, int y) {
@@ -65,14 +67,14 @@ void keyboard_global(unsigned char key, int x, int y) {
   } else if (key == 'F') {
     glutFullScreen();
   } else if (key == 'f') {
-    glutReshapeWindow(400,400);
+    glutReshapeWindow(480,270);
   }
 }
 
 
 GLWindow::GLWindow(int video_width, int video_height, float section_top, float section_bottom, float section_left, float section_right) : 
     _video_width(video_width), _video_height(video_height) {
-  std::cout << "trying to create a window" << std::endl;
+  //std::cout << "trying to create a window" << std::endl;
 
   vertices[6]   = section_top;
   vertices[13]  = section_top;
@@ -86,26 +88,25 @@ GLWindow::GLWindow(int video_width, int video_height, float section_top, float s
   float image_section_height = section_bottom - section_top;
   float image_section_width  = section_right  - section_left;
 
-  std::cout << "sections sizes: " << image_section_height << ":" << image_section_width << '\n';
+  //std::cout << "sections sizes: " << image_section_height << ":" << image_section_width << '\n';
 
   desired_aspect_ratio = (video_width *image_section_width) / 
                          (video_height*image_section_height);
 
-  //desired_aspect_ratio = video_width / static_cast<float>(video_height);
-  std::cout << "dar: " << desired_aspect_ratio << '\n';
+  //std::cout << "dar: " << desired_aspect_ratio << '\n';
 
   bound_top    = (section_top    != 0);
   bound_bottom = (section_bottom != 1);
   bound_left   = (section_left   != 0);
   bound_right  = (section_right  != 1);
 
-  if (bound_top)    { std::cout << "topbound!\n"; }
-  if (bound_bottom) { std::cout << "botbound!\n"; }
-  if (bound_left)   { std::cout << "lefbound!\n"; }
-  if (bound_right)  { std::cout << "rigbound!\n"; }
+  //if (bound_top)    { std::cout << "topbound!\n"; }
+  //if (bound_bottom) { std::cout << "botbound!\n"; }
+  //if (bound_left)   { std::cout << "lefbound!\n"; }
+  //if (bound_right)  { std::cout << "rigbound!\n"; }
   
   glutInitDisplayMode(GLUT_RGB);
-	glutInitWindowSize(400,500);		// width=400pixels height=500pixels
+	glutInitWindowSize(480,270);		// width=400pixels height=500pixels
 
 	id = glutCreateWindow("Triangle");	// create window
 
@@ -117,14 +118,15 @@ GLWindow::GLWindow(int video_width, int video_height, float section_top, float s
 	} else {
 	   if (GLEW_VERSION_3_3)
 	   {
-		  std::cout<<"Driver supports OpenGL 3.3:"<<std::endl;
+		  //std::cout<<"Driver supports OpenGL 3.3:"<<std::endl;
 	   }
 	}
   
   glClearColor(0.0,0.0,0.0,0.0);	// set background to black
-  gluOrtho2D(0,400,0,500);		// how object is mapped to window
+  //gluOrtho2D(0,400,0,500);		// how object is mapped to window
   glutDisplayFunc(redraw_global);		// set window's display callback
   glutIdleFunc(redraw_global);
+  //glutIdleFunc(std::bind(&Renderer::redraw, this));
   glutKeyboardFunc(keyboard_global);		// set window's key callback
 
   // Set closing behaviour: If we leave the mainloop (e.g. through user input or closing the window) we continue after the function "glutMainLoop()"
@@ -308,7 +310,10 @@ Renderer::Renderer(Decoder &dec) : _dec(dec) {
       (_dec.get_width(), _dec.get_height(),
       c.sec_top, c.sec_bot, c.sec_left, c.sec_right));
   }
+}
 
+Renderer::~Renderer() {
+  std::cout << "Renderer is destroyed\n";
 }
 
 std::vector<std::string> split_string
@@ -355,7 +360,7 @@ std::vector<Config> Renderer::read_config() {
     }
   }
   
-  std::cout << "result.size(): " << result.size() << '\n';
+  std::cout << "Number of Windows: " << result.size() << '\n';
 
   return result;
 }
