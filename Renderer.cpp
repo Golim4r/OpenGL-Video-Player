@@ -284,8 +284,7 @@ Renderer::Renderer(Decoder &dec) : _dec(dec) {
   int win;
 	glutInit(&argc, argv);		// initialize GLUT system
 
-  //create an OpenGL window with video size and section sizes
-  //auto cfg = read_config();
+  //create an OpenGL windows with video and section sizes
   for (auto & c : read_config()) {
     _windows.emplace_back(GLWindow
       (_dec.get_width(), _dec.get_height(),
