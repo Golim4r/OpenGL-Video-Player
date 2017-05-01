@@ -23,7 +23,7 @@ extern "C"
 
 #include "JUtils.h"
 
-#define BUFFERED_FRAMES_COUNT 120
+#define BUFFERED_FRAMES_COUNT 9
 
 template <typename T>
 class Buffer {
@@ -57,7 +57,7 @@ public:
   const T & get() {
     //todo: not busy waitasdasd
     while (!_occupied[_read_position]) { 
-      //std::cout << "cant read!"<< _data[0].size() << "\n";
+      std::cout << "cant read!\n";
       if (_done) {
         temp = T(); 
         return temp; 
@@ -97,10 +97,6 @@ private:
 
   bool has_audio = false;
   
-  //std::vector<std::vector<uint8_t>> buffered_video_frames;
-  //std::vector<std::vector<uint8_t>> buffered_audio_frames;
-  //std::vector<uint8_t> buffer_riesen_audio;  
-  
   std::vector<uint8_t> video_frame;
   Buffer<std::vector<uint8_t>> video_frames;
   Buffer<size_t>video_time_stamps;
@@ -109,6 +105,8 @@ private:
   Buffer<std::vector<uint8_t>> audio_frames;
   Buffer<size_t> audio_time_stamps;
 
+  std::atomic<size_t> audio_ts, video_ts;
+  
   void SaveFrame(int iFrame);
   bool read_frame();
 
@@ -122,14 +120,10 @@ public:
   
   std::atomic<bool> done;
 
-  std::atomic<size_t> audio_ts, video_ts;
-  
   void run();
   void stop();  
 
   std::vector<uint8_t> get_video_frame();
-  void clear_frame_for_writing();
-  
   std::vector<uint8_t> get_audio_frame();
   
   const int & get_width();

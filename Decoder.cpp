@@ -58,8 +58,11 @@ Decoder::Decoder(std::string filename) :
         throw 8;
       }
 
-      //std::cout << "This stream has " << aCodecCtx->channels << " channels and a sample rate of " << aCodecCtx->sample_rate << "Hz" << std::endl;
-      //std::cout << "The data is in the format " << av_get_sample_fmt_name(aCodecCtx->sample_fmt) << std::endl;
+      //std::cout << "This stream has " << aCodecCtx->channels << 
+        //" channels and a sample rate of " << aCodecCtx->sample_rate << 
+        //"Hz" << std::endl;
+      //std::cout << "The data is in the format " << 
+        //av_get_sample_fmt_name(aCodecCtx->sample_fmt) << std::endl;
     } else {
       std::cout << "has no audio stream\n";
     }

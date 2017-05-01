@@ -31,12 +31,12 @@ void redraw_global() {
     glutLeaveMainLoop();
   }
   //std::cout << "drawing\n";
-	std::vector<uint8_t> vf = current_renderer->_dec.get_video_frame();
+  std::vector<uint8_t> vf = current_renderer->_dec.get_video_frame();
   
   if (vf.size() == 0) {return;}
 
   for (int i=0; i<current_renderer->get_num_windows(); ++i) {
-		glutSetWindow(current_renderer->get_window_id(i));
+    glutSetWindow(current_renderer->get_window_id(i));
     glFlush();
     
     int & window_width = 
@@ -55,7 +55,7 @@ void redraw_global() {
       glDepthMask(GL_TRUE);
       glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     }
-	}
+  }
 }
 
 void keyboard_global(unsigned char key, int x, int y) {
@@ -98,108 +98,110 @@ GLWindow::GLWindow(int video_width, int video_height,
   bound_right  = (section_right  != 1);
 
   glutInitDisplayMode(GLUT_RGB);
-  glutInitWindowSize(480,270);		// width=400pixels height=500pixels
+  glutInitWindowSize(480,270); // width=400pixels height=500pixels
 
-	id = glutCreateWindow("Triangle");	// create window
+  id = glutCreateWindow("Triangle");  // create window
 
-	// Initialise glew
-	glewExperimental = GL_TRUE; //needed as it is old!
-	GLenum err = glewInit();
-	if (GLEW_OK != err)	{
-	   std::cerr<<"Error: "<<glewGetErrorString(err)<<std::endl;
-	} else {
-	   if (GLEW_VERSION_3_3)
-	   {
-		  //std::cout<<"Driver supports OpenGL 3.3:"<<std::endl;
-	   }
-	}
+  // Initialise glew
+  glewExperimental = GL_TRUE; //needed as it is old!
+  GLenum err = glewInit();
+  if (GLEW_OK != err) {
+     std::cerr<<"Error: "<<glewGetErrorString(err)<<std::endl;
+  } else {
+     if (GLEW_VERSION_3_3)
+     {
+      //std::cout<<"Driver supports OpenGL 3.3:"<<std::endl;
+     }
+  }
   
-  glClearColor(0.0,0.0,0.0,0.0);	// set background to black
-  glutDisplayFunc(redraw_global);		// set window's display callback
+  glClearColor(0.0,0.0,0.0,0.0);  // set background to black
+  glutDisplayFunc(redraw_global); // set window's display callback
   glutIdleFunc(redraw_global);
   //glutIdleFunc(std::bind(&Renderer::redraw, this));
-  glutKeyboardFunc(keyboard_global);		// set window's key callback
+  glutKeyboardFunc(keyboard_global); // set window's key callback
 
-  // Set closing behaviour: If we leave the mainloop (e.g. through user input or closing the window) we continue after the function "glutMainLoop()"
-	glutSetOption(GLUT_ACTION_ON_WINDOW_CLOSE,GLUT_ACTION_GLUTMAINLOOP_RETURNS);
+  // Set closing behaviour: If we leave the mainloop 
+  //(e.g. through user input or closing the window) 
+  //we continue after the function "glutMainLoop()"
+  glutSetOption(GLUT_ACTION_ON_WINDOW_CLOSE,GLUT_ACTION_GLUTMAINLOOP_RETURNS);
 
 
-	// Create Vertex Array Object
-	GLuint vao;
-	glGenVertexArrays(1, &vao);
-	glBindVertexArray(vao);
+  // Create Vertex Array Object
+  GLuint vao;
+  glGenVertexArrays(1, &vao);
+  glBindVertexArray(vao);
 
-	// Create a Vertex Buffer Object and copy the vertex data to it
-	GLuint vbo;
-	glGenBuffers(1, &vbo);
+  // Create a Vertex Buffer Object and copy the vertex data to it
+  GLuint vbo;
+  glGenBuffers(1, &vbo);
 
-	glBindBuffer(GL_ARRAY_BUFFER, vbo);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+  glBindBuffer(GL_ARRAY_BUFFER, vbo);
+  glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
 
-	// Create an element array
-	GLuint ebo;
-	glGenBuffers(1, &ebo);
+  // Create an element array
+  GLuint ebo;
+  glGenBuffers(1, &ebo);
 
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
-	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(elements), elements, GL_STATIC_DRAW);
+  glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
+  glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(elements), elements, GL_STATIC_DRAW);
 
-	// Create and compile the vertex shader
-	GLuint vertexShader = glCreateShader(GL_VERTEX_SHADER);
-	glShaderSource(vertexShader, 1, &vertexSource, NULL);
-	glCompileShader(vertexShader);
+  // Create and compile the vertex shader
+  GLuint vertexShader = glCreateShader(GL_VERTEX_SHADER);
+  glShaderSource(vertexShader, 1, &vertexSource, NULL);
+  glCompileShader(vertexShader);
 
-	// Create and compile the fragment shader
-	GLuint fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
-	glShaderSource(fragmentShader, 1, &fragmentSource, NULL);
-	glCompileShader(fragmentShader);
+  // Create and compile the fragment shader
+  GLuint fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
+  glShaderSource(fragmentShader, 1, &fragmentSource, NULL);
+  glCompileShader(fragmentShader);
 
-	// Link the vertex and fragment shader into a shader program
-	GLuint shaderProgram = glCreateProgram();
-	glAttachShader(shaderProgram, vertexShader);
-	glAttachShader(shaderProgram, fragmentShader);
-	glBindFragDataLocation(shaderProgram, 0, "outColor");
-	glLinkProgram(shaderProgram);
-	glUseProgram(shaderProgram);
+  // Link the vertex and fragment shader into a shader program
+  GLuint shaderProgram = glCreateProgram();
+  glAttachShader(shaderProgram, vertexShader);
+  glAttachShader(shaderProgram, fragmentShader);
+  glBindFragDataLocation(shaderProgram, 0, "outColor");
+  glLinkProgram(shaderProgram);
+  glUseProgram(shaderProgram);
 
-	// Specify the layout of the vertex data
-	GLint posAttrib = glGetAttribLocation(shaderProgram, "position");
-	glEnableVertexAttribArray(posAttrib);
-	glVertexAttribPointer(posAttrib, 2, GL_FLOAT, GL_FALSE, 7 * sizeof(GLfloat), 0);
+  // Specify the layout of the vertex data
+  GLint posAttrib = glGetAttribLocation(shaderProgram, "position");
+  glEnableVertexAttribArray(posAttrib);
+  glVertexAttribPointer(posAttrib, 2, GL_FLOAT, GL_FALSE, 7 * sizeof(GLfloat), 0);
 
-	GLint colAttrib = glGetAttribLocation(shaderProgram, "color");
-	glEnableVertexAttribArray(colAttrib);
-	glVertexAttribPointer(colAttrib, 3, GL_FLOAT, GL_FALSE, 7 * sizeof(GLfloat), (void*)(2 * sizeof(GLfloat)));
+  GLint colAttrib = glGetAttribLocation(shaderProgram, "color");
+  glEnableVertexAttribArray(colAttrib);
+  glVertexAttribPointer(colAttrib, 3, GL_FLOAT, GL_FALSE, 7 * sizeof(GLfloat), (void*)(2 * sizeof(GLfloat)));
 
-	GLint texAttrib = glGetAttribLocation(shaderProgram, "texcoord");
-	glEnableVertexAttribArray(texAttrib);
-	glVertexAttribPointer(texAttrib, 2, GL_FLOAT, GL_FALSE, 7 * sizeof(GLfloat), (void*)(5 * sizeof(GLfloat)));
+  GLint texAttrib = glGetAttribLocation(shaderProgram, "texcoord");
+  glEnableVertexAttribArray(texAttrib);
+  glVertexAttribPointer(texAttrib, 2, GL_FLOAT, GL_FALSE, 7 * sizeof(GLfloat), (void*)(5 * sizeof(GLfloat)));
 
-	// Load texture
+  // Load texture
   GLuint tex;
   glGenTextures(1, &tex);
   glBindTexture(GL_TEXTURE_2D, tex);
 
-	//set pixels array as texture
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, _video_width, _video_height, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
+  //set pixels array as texture
+  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, _video_width, _video_height, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
   
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
   
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 }
 
 GLWindow::~GLWindow() {
-	glDeleteTextures(1, &tex);
+  glDeleteTextures(1, &tex);
 
-	glDeleteProgram(shaderProgram);
-	glDeleteShader(fragmentShader);
-	glDeleteShader(vertexShader);
+  glDeleteProgram(shaderProgram);
+  glDeleteShader(fragmentShader);
+  glDeleteShader(vertexShader);
 
-	glDeleteBuffers(1, &ebo);
-	glDeleteBuffers(1, &vbo);
-	glDeleteVertexArrays(1, &vao);
+  glDeleteBuffers(1, &ebo);
+  glDeleteBuffers(1, &vbo);
+  glDeleteVertexArrays(1, &vao);
 }
 
 void GLWindow::update_section() {
@@ -281,12 +283,11 @@ Renderer::Renderer(Decoder &dec) : _dec(dec) {
   current_renderer = this;
   int argc = 1;
   char* argv[] = {"egal"};
-  int win;
-	glutInit(&argc, argv);		// initialize GLUT system
+  glutInit(&argc, argv);  // initialize GLUT system
 
-  //create an OpenGL windows with video and section sizes
+  //create OpenGL windows with video and section sizes
   for (auto & c : read_config()) {
-    _windows.emplace_back(GLWindow
+    _windows.push_back(GLWindow
       (_dec.get_width(), _dec.get_height(),
       c.sec_top, c.sec_bot, c.sec_left, c.sec_right));
   }
@@ -349,12 +350,12 @@ void Renderer::run() {
   glutMainLoop();
 }
 
-void Renderer::redraw()	{
+void Renderer::redraw() {
   //std::cout << "drawing\n";
   std::vector<uint8_t> vf = _dec.get_video_frame();
 
   for (auto & w : _windows) {
-		glutSetWindow(w.id);
+    glutSetWindow(w.id);
     glFlush();
     
     //int & window_width = 
@@ -390,7 +391,7 @@ void Renderer::redraw()	{
     glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, _dec.get_width(), _dec.get_height(), GL_RGB, GL_UNSIGNED_BYTE, vf.data());
     glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
     glutSwapBuffers();
-	}
+  }
 }
 
 void Renderer::keyboard(unsigned char key, int x, int y) {
