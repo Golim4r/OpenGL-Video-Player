@@ -112,8 +112,10 @@ Decoder::Decoder(std::string filename) :
     avpicture_fill((AVPicture *)pFrameRGB, buffer, PIX_FMT_RGB24, pCodecCtx->width, pCodecCtx->height);
   
     // initialize SWS context for software scaling
-    sws_ctx = sws_getContext(	pCodecCtx->width, pCodecCtx->height, pCodecCtx->pix_fmt, pCodecCtx->width, pCodecCtx->height,
-                  PIX_FMT_RGB24, SWS_BILINEAR, NULL, NULL, NULL);
+    sws_ctx = sws_getContext(	pCodecCtx->width, pCodecCtx->height,
+                  pCodecCtx->pix_fmt, pCodecCtx->width, 
+                  pCodecCtx->height, PIX_FMT_RGB24, SWS_BILINEAR,
+                  NULL, NULL, NULL);
 
     swr_ctx = swr_alloc_set_opts(NULL, aCodecCtx->channel_layout,
                   AV_SAMPLE_FMT_U8, aCodecCtx->sample_rate,

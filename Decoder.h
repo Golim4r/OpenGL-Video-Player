@@ -57,8 +57,9 @@ public:
   const T & get() {
     //todo: not busy waitasdasd
     while (!_occupied[_read_position]) { 
-      std::cout << "cant read!\n";
+      //std::cout << "cant read!\n";
       if (_done) {
+        std::cout << "can't read, returning default\n";
         temp = T(); 
         return temp; 
       }
@@ -71,7 +72,7 @@ public:
   }
 
   void stop() {
-    //_done = true;
+    _done = true;
   }
 };
 

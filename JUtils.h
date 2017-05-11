@@ -110,7 +110,7 @@ public:
     //std::cout << "arrived at:              " << std::chrono::duration<double>(std::chrono::high_resolution_clock::now() - t_start).count()*1000 << '\n';
     //std::cout << "counter:                 " << counter << '\n';
     //std::cout << "should be released at:   " << (counter+1) * interval << '\n';
-    time_till_next = interval - std::chrono::duration<double>(std::chrono::high_resolution_clock::now() - t_start).count()*1000 + interval*pts;
+    double time_till_next = interval - std::chrono::duration<double>(std::chrono::high_resolution_clock::now() - t_start).count()*1000 + interval*pts;
     //std::cout << "calculated waiting time with pts: " << time_till_next << '\n';
     if (time_till_next>0) {
       std::this_thread::sleep_for(std::chrono::microseconds(static_cast<int>(time_till_next*1000)));
@@ -124,7 +124,7 @@ public:
     //std::cout << "arrived at:              " << std::chrono::duration<double>(std::chrono::high_resolution_clock::now() - t_start).count()*1000 << '\n';
     //std::cout << "counter:                 " << counter << '\n';
     //std::cout << "should be released at:   " << (counter+1) * interval << '\n';
-    time_till_next = interval - std::chrono::duration<double>(std::chrono::high_resolution_clock::now() - t_start).count()*1000 + interval*counter;
+    double time_till_next = interval - std::chrono::duration<double>(std::chrono::high_resolution_clock::now() - t_start).count()*1000 + interval*counter;
     //std::cout << "calculated waiting time: " << time_till_next << '\n';
     if (time_till_next>0) {
       std::this_thread::sleep_for(std::chrono::microseconds(static_cast<int>(time_till_next*1000)));
@@ -139,5 +139,5 @@ public:
 private:
   std::chrono::high_resolution_clock::time_point t_start;
   unsigned long long counter;
-  double interval, time_till_next;
+  double interval;//, time_till_next;
 };
