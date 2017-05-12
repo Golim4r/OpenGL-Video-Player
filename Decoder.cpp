@@ -1,12 +1,12 @@
 #include "Decoder.h"
 
-Decoder::Decoder(std::string filename) : 
+Decoder::Decoder(std::string filename, bool decodeVideo, bool decodeAudio) : 
   video_frames(BUFFERED_FRAMES_COUNT),
   video_time_stamps(BUFFERED_FRAMES_COUNT),
   audio_frames(BUFFERED_FRAMES_COUNT), 
   audio_time_stamps(BUFFERED_FRAMES_COUNT),
   vtim(106), atim(107),
-  done(false)
+  done(false), _decodeVideo(decodeVideo), _decodeAudio(decodeAudio)
 {
   try {
     std::cout << "opening file " << filename << std::endl;
@@ -216,7 +216,7 @@ bool Decoder::read_frame() {
   //bool frameComplete = false;
   if (av_read_frame(pFormatCtx, &packet) >= 0) {
     // Is this a packet from the video stream?
-    if (packet.stream_index == videoStream) {
+    if (packet.stream_index == videoStream && _decodeVideo) {
       // Decode video frame
       avcodec_decode_video2(pCodecCtx, pFrame, &frameFinished, &packet);
       // Did we get a video frame?
@@ -240,7 +240,7 @@ bool Decoder::read_frame() {
         //std::cout << "no finished frame" << std::endl;
       }
     }
-    else if (packet.stream_index == audioStream) {
+    else if (packet.stream_index == audioStream && _decodeAudio) {
       while (packet.size > 0) {
         int gotFrame = 0;
         int result = avcodec_decode_audio4(aCodecCtx, aFrame, &gotFrame, &packet);
@@ -289,6 +289,10 @@ bool Decoder::read_frame() {
 }
 
 std::vector<uint8_t> Decoder::get_video_frame() {
+  if (!_decodeVideo) {
+    return std::vector<uint8_t>();
+  }
+
   video_ts = video_time_stamps.get();
 
   //std::cout << "vts: " << video_ts << '\n';
@@ -298,6 +302,10 @@ std::vector<uint8_t> Decoder::get_video_frame() {
 }
 
 std::vector<uint8_t> Decoder::get_audio_frame() {
+  if (!_decodeAudio) {
+    return std::vector<uint8_t>();
+  }
+
   audio_ts = audio_time_stamps.get();
   //std::cout << "ats: " << audio_ts << '\n';
 

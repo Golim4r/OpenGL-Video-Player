@@ -21,6 +21,7 @@ int main(int argc, char *argv[]) {
     filename = argv[1];
 	}
 
+  //Decoder d(filename, false, true);
   Decoder d(filename);
 
   Renderer r(d);

@@ -113,10 +113,11 @@ private:
 
   JTimedIterationManager vtim, atim;
   
-  bool first_time = true;
+  bool _decodeVideo, _decodeAudio;
+  //bool first_time = true;
 public:
   Decoder() = delete;
-  Decoder(std::string filename = "CarRace.mp4");
+  Decoder(std::string filename, bool decodeVideo=true, bool decodeAudio=true);
   ~Decoder();
   
   std::atomic<bool> done;
