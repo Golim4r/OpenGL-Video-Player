@@ -188,6 +188,10 @@ void Decoder::stop() {
   //std::cout << "decoder stopped\n";
 }
  
+void Decoder::seek(const size_t & video_frame_pts) {
+  std::cout << "seek: " << av_seek_frame(pFormatCtx, videoStream, video_frame_pts, AVSEEK_FLAG_BACKWARD) << '\n';
+}
+
 //void Decoder::SaveFrame(AVFrame *pFrame, int width, int height, int iFrame) {
 void Decoder::SaveFrame(int iFrame) {
   std::cout << "saving frame " << iFrame << '\n';

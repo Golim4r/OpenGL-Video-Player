@@ -25,6 +25,11 @@ extern "C"
 
 #define BUFFERED_FRAMES_COUNT 9
 
+struct MediaFrame {
+  size_t pts;
+  std::vector<uint8_t> data;
+};
+
 template <typename T>
 class Buffer {
 private:
@@ -124,6 +129,7 @@ public:
 
   void run();
   void stop();  
+  void seek(const size_t & video_frame_pts);
 
   std::vector<uint8_t> get_video_frame();
   std::vector<uint8_t> get_audio_frame();

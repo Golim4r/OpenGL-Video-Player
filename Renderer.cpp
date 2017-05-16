@@ -67,6 +67,8 @@ void keyboard_global(unsigned char key, int x, int y) {
     glutFullScreen();
   } else if (key == 'f') {
     glutReshapeWindow(480,270);
+  } else if (key == 's') {
+    current_renderer->_dec.seek(20);
   }
 }
 
@@ -351,46 +353,33 @@ void Renderer::run() {
 }
 
 void Renderer::redraw() {
+  if (_dec.done) {
+    return;
+  }
   //std::cout << "drawing\n";
   std::vector<uint8_t> vf = _dec.get_video_frame();
+  
+  if (vf.size() == 0) {return;}
 
-  for (auto & w : _windows) {
-    glutSetWindow(w.id);
+  for (int i=0; i<_windows.size(); ++i) {
+    glutSetWindow(get_window_id(i));
     glFlush();
     
-    //int & window_width = 
-    //  current_renderer->_windows[i].window_width;
-    //int & window_height = 
-    //  current_renderer->_windows[i].window_height;
-
-    //if (glutGet(GLUT_WINDOW_WIDTH)  != window_width ||
-    //    glutGet(GLUT_WINDOW_HEIGHT) != window_height) {
+    int & window_width = _windows[i].window_width;
+    int & window_height = _windows[i].window_height;
     
-    //  window_width  = glutGet(GLUT_WINDOW_WIDTH);
-    //  window_height = glutGet(GLUT_WINDOW_HEIGHT);
-
-
-    //  double current_ap = static_cast<double>(window_width) / 
-    //                   static_cast<double>(window_height);
-    //  double desired_ap = 
-    //  static_cast<double>(current_renderer->_dec.get_width()) / 
-    //  static_cast<double>(current_renderer->_dec.get_height());
-
-    //  std::cout << "aspect ratio: " << window_width << 
-    //              ":" << window_height << '\n';
-
-
-    //  std::cout << "ap: " << current_ap;
-    //  std::cout << " should be: " << desired_ap << '\n';
-
-
-
-      //glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    //}
-    
-    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, _dec.get_width(), _dec.get_height(), GL_RGB, GL_UNSIGNED_BYTE, vf.data());
+    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, _dec.get_width(), _dec.get_height(), 
+        GL_RGB, GL_UNSIGNED_BYTE, vf.data());
     glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
     glutSwapBuffers();
+    if (glutGet(GLUT_WINDOW_WIDTH)  != window_width ||
+        glutGet(GLUT_WINDOW_HEIGHT) != window_height) {
+      _windows[i].update_section();     
+
+      glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
+      glDepthMask(GL_TRUE);
+      glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    }
   }
 }
 
