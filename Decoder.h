@@ -26,6 +26,10 @@ extern "C"
 #define BUFFERED_FRAMES_COUNT 9
 
 struct MediaFrame {
+  MediaFrame(){}
+  MediaFrame(uint8_t *data_ptr, size_t data_size, size_t timestamp):
+    data(data_ptr, data_ptr + data_size), pts(timestamp) {}
+
   size_t pts;
   std::vector<uint8_t> data;
 };
@@ -64,7 +68,7 @@ public:
     while (!_occupied[_read_position]) { 
       //std::cout << "cant read!\n";
       if (_done) {
-        std::cout << "can't read, returning default\n";
+        std::cout << "stopped, returning default\n";
         temp = T(); 
         return temp; 
       }
@@ -98,18 +102,16 @@ private:
   uint8_t           *buffer = NULL;
   struct SwsContext *sws_ctx = NULL;
   struct SwrContext *swr_ctx = NULL;
-  double            fps, aps;
+  //double            fps, aps;
   double            aspect_ratio;
 
   bool has_audio = false;
-  
-  std::vector<uint8_t> video_frame;
-  Buffer<std::vector<uint8_t>> video_frames;
-  Buffer<size_t>video_time_stamps;
+  std::atomic<bool> _sync_local;
 
-  std::vector<uint8_t> audio_frame;
-  Buffer<std::vector<uint8_t>> audio_frames;
-  Buffer<size_t> audio_time_stamps;
+  MediaFrame videoframe;
+  Buffer<MediaFrame> vframes;
+  MediaFrame audioframe;
+  Buffer<MediaFrame> aframes;
 
   std::atomic<size_t> audio_ts, video_ts;
   
@@ -122,7 +124,8 @@ private:
   //bool first_time = true;
 public:
   Decoder() = delete;
-  Decoder(std::string filename, bool decodeVideo=true, bool decodeAudio=true);
+  Decoder(std::string filename, 
+      bool decodeVideo=true, bool decodeAudio=true, bool sync_local = true);
   ~Decoder();
   
   std::atomic<bool> done;

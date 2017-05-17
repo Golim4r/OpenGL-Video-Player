@@ -192,6 +192,7 @@ GLWindow::GLWindow(int video_width, int video_height,
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
   
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+  //std::cout << "window created\n";
 }
 
 GLWindow::~GLWindow() {
@@ -204,6 +205,7 @@ GLWindow::~GLWindow() {
   glDeleteBuffers(1, &ebo);
   glDeleteBuffers(1, &vbo);
   glDeleteVertexArrays(1, &vao);
+  //std::cout << "window destroyed\n";
 }
 
 void GLWindow::update_section() {
@@ -352,14 +354,14 @@ void Renderer::run() {
   glutMainLoop();
 }
 
-void Renderer::redraw() {
+void Renderer::draw(std::vector<uint8_t> frame) {
   if (_dec.done) {
     return;
   }
   //std::cout << "drawing\n";
-  std::vector<uint8_t> vf = _dec.get_video_frame();
+  //std::vector<uint8_t> vf = _dec.get_video_frame();
   
-  if (vf.size() == 0) {return;}
+  if (frame.size() == 0) {return;}
 
   for (int i=0; i<_windows.size(); ++i) {
     glutSetWindow(get_window_id(i));
@@ -369,7 +371,7 @@ void Renderer::redraw() {
     int & window_height = _windows[i].window_height;
     
     glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, _dec.get_width(), _dec.get_height(), 
-        GL_RGB, GL_UNSIGNED_BYTE, vf.data());
+        GL_RGB, GL_UNSIGNED_BYTE, frame.data());
     glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
     glutSwapBuffers();
     if (glutGet(GLUT_WINDOW_WIDTH)  != window_width ||

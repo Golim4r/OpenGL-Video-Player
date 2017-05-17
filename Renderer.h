@@ -68,7 +68,7 @@ public:
   Decoder& _dec;
   //uint8_t* frame_data;
 
-  void redraw();
+  void draw(std::vector<uint8_t> frame);
 
   std::vector<GLWindow> _windows;
   
