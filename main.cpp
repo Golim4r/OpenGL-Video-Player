@@ -11,7 +11,7 @@ void audiothread(Decoder & d) {
   
   while (!d.done) {
     //std::cout << "trying to get an audio frame\n"; 
-    pp.play(d.get_audio_frame());
+    pp.play(d.get_audio_frame().data);
   }
 }
 
@@ -22,8 +22,8 @@ int main(int argc, char *argv[]) {
     filename = argv[1];
 	}
 
-  Decoder d(filename, true, false, true);
-  //Decoder d(filename);
+  //Decoder d(filename, true, false, true);
+  Decoder d(filename);
 
   Renderer r(d);
   JDurationManager dm;
@@ -34,8 +34,18 @@ int main(int argc, char *argv[]) {
   std::thread at(audiothread, std::ref(d));
   //r.run();
   
+
+  /*for (int i=0; i<100; ++i) {
+    r.draw(d.get_video_frame().data);
+  }
+  d.seek(1000);
+  for (int i=0; i<100; ++i) {
+    r.draw(d.get_video_frame().data);
+  }
+  d.seek(1000);
+*/
   while(!d.done) {
-    r.draw(d.get_video_frame());
+    r.draw(d.get_video_frame().data);
   }
 
   at.join();

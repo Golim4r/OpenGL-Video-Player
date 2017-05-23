@@ -80,6 +80,12 @@ public:
     return temp;
   }
 
+  void clear() {
+    for (int i=0; i<_data.size(); ++i) {
+      _occupied[i] = false;
+    }
+  }
+
   void stop() {
     _done = true;
   }
@@ -102,7 +108,6 @@ private:
   uint8_t           *buffer = NULL;
   struct SwsContext *sws_ctx = NULL;
   struct SwrContext *swr_ctx = NULL;
-  //double            fps, aps;
   double            aspect_ratio;
 
   bool has_audio = false;
@@ -121,7 +126,7 @@ private:
   JTimedIterationManager vtim, atim;
   
   bool _decodeVideo, _decodeAudio;
-  //bool first_time = true;
+  size_t _offset;
 public:
   Decoder() = delete;
   Decoder(std::string filename, 
@@ -134,8 +139,8 @@ public:
   void stop();  
   void seek(const size_t & video_frame_pts);
 
-  std::vector<uint8_t> get_video_frame();
-  std::vector<uint8_t> get_audio_frame();
+  MediaFrame get_video_frame();
+  MediaFrame get_audio_frame();
   
   const int & get_width();
   const int & get_height();

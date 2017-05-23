@@ -95,10 +95,10 @@ public:
     interval = ms;
   }
   
-  void start() {
+  void set_start_now() {
     t_start = std::chrono::high_resolution_clock::now();
   }
-  
+
   double get_timing(size_t pts) {
     return interval - 
       std::chrono::duration<double>(std::chrono::high_resolution_clock::now() - 

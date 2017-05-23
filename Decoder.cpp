@@ -6,7 +6,7 @@ Decoder::Decoder(std::string filename,
   aframes(BUFFERED_FRAMES_COUNT),
   vtim(106), atim(107), //random values, are overwritten anyways
   done(false), _decodeVideo(decodeVideo), _decodeAudio(decodeAudio),
-  _sync_local(sync_local)
+  _sync_local(sync_local), _offset(0)
 {
   try {
     std::cout << "opening file " << filename << std::endl;
@@ -162,11 +162,13 @@ Decoder::~Decoder() {
 void Decoder::run() {
   //std::cout << "Decoder trying to run!\n";
   //done = false;
-  vtim.start();
+  vtim.set_start_now();
   atim.set_start(vtim.get_start());
   size_t ctr = 0;
   while(!done) {
-    while(read_frame() && !done) { }
+    while(read_frame() && !done) { 
+      //todo seek here!
+    }
     av_seek_frame(pFormatCtx, videoStream, 0, AVSEEK_FLAG_ANY);
     //std::cout << "next round!\n";
   }
@@ -183,8 +185,12 @@ void Decoder::stop() {
   //std::cout << "decoder stopped\n";
 }
  
-void Decoder::seek(const size_t & video_frame_pts) {
-  std::cout << "seek: " << av_seek_frame(pFormatCtx, videoStream, video_frame_pts, AVSEEK_FLAG_BACKWARD) << '\n';
+void Decoder::seek(const size_t & offset) {
+  _offset = offset;
+  size_t seek_target; // = ...
+  aframes.clear();
+  vframes.clear();
+  std::cout << "seek: " << av_seek_frame(pFormatCtx, videoStream, seek_target, AVSEEK_FLAG_BACKWARD) << '\n';
 }
 
 //void Decoder::SaveFrame(AVFrame *pFrame, int width, int height, int iFrame) {
@@ -284,9 +290,9 @@ bool Decoder::read_frame() {
   return true;
 }
 
-std::vector<uint8_t> Decoder::get_video_frame() {
+MediaFrame Decoder::get_video_frame() {
   if (!_decodeVideo) {
-    return std::vector<uint8_t>();
+    return MediaFrame();
   }
 
   videoframe = vframes.get();
@@ -299,23 +305,22 @@ std::vector<uint8_t> Decoder::get_video_frame() {
     vtim.wait(videoframe.pts);
   }
 
-  return videoframe.data;
+  return videoframe;
 }
 
-std::vector<uint8_t> Decoder::get_audio_frame() {
+MediaFrame Decoder::get_audio_frame() {
   if (!_decodeAudio) {
-    return std::vector<uint8_t>();
+    return MediaFrame();
   }
   
   audioframe = aframes.get();
   
   if (_sync_local && atim.wait(audioframe.pts)<0) {
-    std::vector<uint8_t> temp = audioframe.data;
-    temp.resize(temp.size()-6);
-    return temp;
+    audioframe.data.resize(audioframe.data.size()-6);
+    return audioframe;
   }
 
-  return audioframe.data;
+  return audioframe;
 }
 
 const int & Decoder::get_width() {

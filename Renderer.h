@@ -66,9 +66,11 @@ public:
   void run();
   //should be private, but redraw must be global?
   Decoder& _dec;
-  //uint8_t* frame_data;
+
 
   void draw(std::vector<uint8_t> frame);
+  void set_fullscreen();
+  void leave_fullscreen();
 
   std::vector<GLWindow> _windows;
   

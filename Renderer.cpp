@@ -31,8 +31,8 @@ void redraw_global() {
     glutLeaveMainLoop();
   }
   //std::cout << "drawing\n";
-  std::vector<uint8_t> vf = current_renderer->_dec.get_video_frame();
-  
+  std::vector<uint8_t> vf = current_renderer->_dec.get_video_frame().data;
+
   if (vf.size() == 0) {return;}
 
   for (int i=0; i<current_renderer->get_num_windows(); ++i) {
@@ -44,13 +44,14 @@ void redraw_global() {
     int & window_height = 
       current_renderer->_windows[i].window_height;
     
+    glPixelStorei(GL_UNPACK_ALIGNMENT, 2);
     glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, current_renderer->_dec.get_width(), current_renderer->_dec.get_height(), GL_RGB, GL_UNSIGNED_BYTE, vf.data());
     glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
     glutSwapBuffers();
     if (glutGet(GLUT_WINDOW_WIDTH)  != window_width ||
         glutGet(GLUT_WINDOW_HEIGHT) != window_height) {
       current_renderer->_windows[i].update_section();     
-
+      
       glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
       glDepthMask(GL_TRUE);
       glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -100,9 +101,9 @@ GLWindow::GLWindow(int video_width, int video_height,
   bound_right  = (section_right  != 1);
 
   glutInitDisplayMode(GLUT_RGB);
-  glutInitWindowSize(480,270); // width=400pixels height=500pixels
+  glutInitWindowSize(video_width,video_height); // width=400pixels height=500pixels
 
-  id = glutCreateWindow("Triangle");  // create window
+  id = glutCreateWindow("GLV");  // create window
 
   // Initialise glew
   glewExperimental = GL_TRUE; //needed as it is old!
@@ -358,8 +359,6 @@ void Renderer::draw(std::vector<uint8_t> frame) {
   if (_dec.done) {
     return;
   }
-  //std::cout << "drawing\n";
-  //std::vector<uint8_t> vf = _dec.get_video_frame();
   
   if (frame.size() == 0) {return;}
 
@@ -370,18 +369,36 @@ void Renderer::draw(std::vector<uint8_t> frame) {
     int & window_width = _windows[i].window_width;
     int & window_height = _windows[i].window_height;
     
+    glPixelStorei(GL_UNPACK_ALIGNMENT, 2);
     glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, _dec.get_width(), _dec.get_height(), 
         GL_RGB, GL_UNSIGNED_BYTE, frame.data());
     glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
     glutSwapBuffers();
+    
     if (glutGet(GLUT_WINDOW_WIDTH)  != window_width ||
         glutGet(GLUT_WINDOW_HEIGHT) != window_height) {
       _windows[i].update_section();     
+
+      glViewport(0, 0, window_width, window_height);
 
       glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
       glDepthMask(GL_TRUE);
       glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     }
+  }
+}
+
+
+void Renderer::set_fullscreen() {
+  for (int i=0; i<_windows.size(); ++i) {
+    glutSetWindow(get_window_id(i));
+    glutFullScreen();
+  }
+}
+
+void Renderer::leave_fullscreen() {
+  for (int i=0; i<_windows.size(); ++i) {
+    glutReshapeWindow(_dec.get_width(), _dec.get_height());
   }
 }
 
