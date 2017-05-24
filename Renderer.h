@@ -68,7 +68,7 @@ public:
   Decoder& _dec;
 
 
-  void draw(std::vector<uint8_t> frame);
+  void draw(const std::vector<uint8_t> & frame);
   void set_fullscreen();
   void leave_fullscreen();
 

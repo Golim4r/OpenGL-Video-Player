@@ -355,7 +355,7 @@ void Renderer::run() {
   glutMainLoop();
 }
 
-void Renderer::draw(std::vector<uint8_t> frame) {
+void Renderer::draw(const std::vector<uint8_t> & frame) {
   if (_dec.done) {
     return;
   }
