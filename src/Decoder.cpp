@@ -1,12 +1,17 @@
 #include "Decoder.h"
 
 Decoder::Decoder(std::string filename, 
-    bool decodeVideo, bool decodeAudio, bool sync_local) : 
+    bool decodeVideo, bool decodeAudio, bool sync_local, int audio_stream) : 
   vframes(BUFFERED_FRAMES_COUNT),
   aframes(BUFFERED_FRAMES_COUNT),
   vtim(106), atim(107), //random values, are overwritten anyways
-  done(false), _decodeVideo(decodeVideo), _decodeAudio(decodeAudio),
-  _sync_local(sync_local), _seek_seconds(0), current_video_pts(0)
+  done(false),
+  _decodeVideo(decodeVideo),
+  _decodeAudio(decodeAudio),
+  _sync_local(sync_local),
+  _seek_seconds(0),
+  current_video_pts(0),
+  currentAudioStream(audio_stream)
 {
   try {
     std::cout << "opening file " << filename << std::endl;
@@ -27,25 +32,25 @@ Decoder::Decoder(std::string filename,
   
     // Find the first video stream
     videoStream = -1;
-    audioStream = -1;
+    
     for(int i=0; i<pFormatCtx->nb_streams; i++) {
       if (pFormatCtx->streams[i]->codec->codec_type==AVMEDIA_TYPE_VIDEO) {
         videoStream = i;
         //break;
       }
       if (pFormatCtx->streams[i]->codec->codec_type == AVMEDIA_TYPE_AUDIO) {
-        audioStream = i;
+        audioStreams.push_back(i);
       }
     }
     if(videoStream==-1) {
       throw 2;
     }
 
-    if (audioStream != -1) {
-      has_audio = true;
-      aCodecCtx = pFormatCtx->streams[audioStream]->codec;
+    if (audioStreams.size() != 0) {
+      if (currentAudioStream >= audioStreams.size()) { currentAudioStream = 0; }
+
+      aCodecCtx = pFormatCtx->streams[audioStreams[currentAudioStream]]->codec;
       aFrame = av_frame_alloc();
-	  //aFrame = avcodec_alloc_frame();
 	  
       aCodecCtx->codec = avcodec_find_decoder(aCodecCtx->codec_id);
       if (aCodecCtx->codec == NULL) {
@@ -71,7 +76,7 @@ Decoder::Decoder(std::string filename,
     pCodecCtxOrig=pFormatCtx->streams[videoStream]->codec;
     
     vtim.set_interval(av_q2d(pFormatCtx->streams[videoStream]->time_base)*1000);
-    atim.set_interval(av_q2d(pFormatCtx->streams[audioStream]->time_base)*1000);
+    atim.set_interval(av_q2d(pFormatCtx->streams[audioStreams[currentAudioStream]]->time_base)*1000);
 
     // Find the decoder for the video stream
     pCodec=avcodec_find_decoder(pCodecCtxOrig->codec_id);
@@ -137,12 +142,11 @@ Decoder::Decoder(std::string filename,
 }
 
 Decoder::~Decoder() {
-  if (has_audio) {
-    // Free the audio frame and close codec
-    av_frame_free(&aFrame);
-    avcodec_close(aCodecCtx);
-  }
-	// Free the RGB image
+  // Free the audio frame and close codec
+  av_frame_free(&aFrame);
+  avcodec_close(aCodecCtx);
+	
+  // Free the RGB image
 	av_free(buffer);
 	av_frame_free(&pFrameRGB);
 	
@@ -191,13 +195,9 @@ void Decoder::seek(const size_t & seconds) {
 }
 
 void Decoder::seek() {
+  std::cout << "now seeking...";
   size_t seek_target = current_video_pts + 
     (_seek_seconds / av_q2d(pFormatCtx->streams[videoStream]->time_base));
-  std::cout << "seek seconds: " << _seek_seconds << '\n';
-  std::cout << "seek timestamps: " << _seek_seconds / av_q2d(pFormatCtx->streams[videoStream]->time_base) << '\n';
-  std::cout << "fps: " << 1 / av_q2d(pFormatCtx->streams[videoStream]->time_base) << '\n';
-  std::cout << "current frame: " << current_video_pts << ", seek target: " << seek_target << '\n';
-
 
   av_free_packet(&packet);
   av_freep(&packet);
@@ -213,9 +213,24 @@ void Decoder::seek() {
   
   vframes.clear();
   vtim.add_offset(-_seek_seconds);
+
+  std::cout << "done\n";
 }
 
-//void Decoder::SaveFrame(AVFrame *pFrame, int width, int height, int iFrame) {
+
+/*void Decoder::next_audio_stream() {
+  currentAudioStream = 
+    currentAudioStream == audioStreams.size() - 1 ?
+    0 : currentAudioStream + 1;
+}
+
+void Decoder::previous_audio_stream() {
+  currentAudioStream = 
+    currentAudioStream == 0 ?
+    audioStreams.size() - 1 : currentAudioStream - 1;
+}
+*/
+
 void Decoder::SaveFrame(int iFrame) {
   std::cout << "saving frame " << iFrame << '\n';
   FILE *pFile;
@@ -260,7 +275,7 @@ bool Decoder::read_frame() {
         //std::cout << "no finished frame" << std::endl;
       }
     }
-    else if (packet.stream_index == audioStream && _decodeAudio) {
+    else if (packet.stream_index == audioStreams[currentAudioStream] && _decodeAudio) {
       while (packet.size > 0) {
         int gotFrame = 0;
         int result = avcodec_decode_audio4(aCodecCtx, aFrame, &gotFrame, &packet);
@@ -284,10 +299,7 @@ bool Decoder::read_frame() {
             in,
             aFrame->nb_samples);
 
-          //std::cout << "+++ audio frame pts: " << aFrame->pkt_pts << ", duration: " << aFrame->pkt_duration << '\n';
-         
           aframes.put(MediaFrame(out, ret*aCodecCtx->channels, aFrame->pkt_pts));
-          //std::cout << "putting audioframe " << aFrame->pkt_pts << "\n";
 
           free(out);
         }

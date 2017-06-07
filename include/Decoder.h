@@ -66,7 +66,7 @@ public:
   const T & get() {
     //todo: not busy waitasdasd
     while (!_occupied[_read_position]) { 
-      std::cout << "cant read!\n";
+      //std::cout << "cant read!\n";
       if (_done) {
         std::cout << "stopped, returning default\n";
         temp = T(); 
@@ -98,7 +98,7 @@ public:
 class Decoder {
 private:
   AVFormatContext   *pFormatCtx = NULL;
-  int               videoStream, audioStream;
+  int               videoStream;
   AVCodecContext    *pCodecCtxOrig = NULL;
   AVCodecContext    *pCodecCtx = NULL;
   AVCodecContext    *aCodecCtx = NULL;
@@ -114,7 +114,9 @@ private:
   struct SwrContext *swr_ctx = NULL;
   double            aspect_ratio;
 
-  bool has_audio = false;
+  std::vector<int> audioStreams;
+  std::atomic<int> currentAudioStream;
+
   std::atomic<bool> _sync_local;
 
   MediaFrame videoframe;
@@ -135,7 +137,8 @@ private:
 public:
   Decoder() = delete;
   Decoder(std::string filename, 
-      bool decodeVideo=true, bool decodeAudio=true, bool sync_local = true);
+      bool decodeVideo=true, bool decodeAudio=true, bool sync_local = true,
+      int audio_stream=0);
   ~Decoder();
   
   std::atomic<bool> done;
@@ -143,6 +146,8 @@ public:
   void run();
   void stop();  
   void seek(const size_t & video_frame_pts);
+  //void next_audio_stream();
+  //void previous_audio_stream();
 
   MediaFrame get_video_frame();
   MediaFrame get_audio_frame();

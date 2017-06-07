@@ -22,7 +22,8 @@ int main(int argc, char *argv[]) {
     filename = argv[1];
 	}
 
-  Decoder d(filename, true, true, false);
+  int audiotrack = argc > 2 ? std::stoi(argv[2])  : 0;
+  Decoder d(filename, true, true, false,audiotrack);
   //Decoder d(filename);
 
   Renderer r(d);

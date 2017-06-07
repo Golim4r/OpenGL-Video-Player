@@ -70,10 +70,8 @@ void keyboard_global(unsigned char key, int x, int y) {
     glutReshapeWindow(480,270);
   } else if (key == 's') {
     current_renderer->_dec.seek(20);
-    std::this_thread::sleep_for(std::chrono::milliseconds(500));
   } else if (key == 'S') {
     current_renderer->_dec.seek(-20);
-    std::this_thread::sleep_for(std::chrono::milliseconds(500));
   }
 }
 
