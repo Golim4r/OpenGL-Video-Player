@@ -16,7 +16,7 @@ Pulseplayer::Pulseplayer(uint32_t sample_rate, uint8_t channels) {
   ss = { .format = PA_SAMPLE_U8,
          .rate = sample_rate,
          .channels = channels };
-  std::cout << "sample rate: " << sample_rate << "channels: " << static_cast<int>(channels) << '\n';
+  //std::cout << "sample rate: " << sample_rate << "channels: " << static_cast<int>(channels) << '\n';
   if(!(s = pa_simple_new(NULL, "test",PA_STREAM_PLAYBACK, NULL, 
       "playback", &ss, NULL, NULL, &error))) {
     std::cout << "no we dont\n";

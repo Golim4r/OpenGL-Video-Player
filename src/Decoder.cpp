@@ -330,7 +330,7 @@ MediaFrame Decoder::get_video_frame() {
 
   //std::cout << "vts: " << video_ts << '\n';
   if (_sync_local) {
-    //std::cout<< "vtim: " << vtim.wait(videoframe.pts) << '\n';
+    std::cout<< "vtim: " << vtim.wait(videoframe.pts) << '\n';
     vtim.wait(videoframe.pts);
   }
 
@@ -346,10 +346,10 @@ MediaFrame Decoder::get_audio_frame() {
   audioframe = aframes.get();
   
   if (_sync_local && atim.wait(audioframe.pts)<0) {
-    //audioframe.data.resize(audioframe.data.size()-100);
+    audioframe.data.resize(audioframe.data.size()-10);
     //std::cout << "audio too late\n";
-    //return audioframe;
-    return MediaFrame();
+    return audioframe;
+    //return MediaFrame();
   }
 
   //std::cout << "get audio frame "<<audioframe.pts<<"\n";

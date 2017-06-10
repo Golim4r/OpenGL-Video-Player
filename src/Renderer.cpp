@@ -76,9 +76,9 @@ void keyboard_global(unsigned char key, int x, int y) {
 }
 
 
-GLWindow::GLWindow(int video_width, int video_height, 
-  float section_top, float section_bottom, 
-  float section_left, float section_right) : 
+GLWindow::GLWindow(int video_width, int video_height, std::string window_name,
+  float section_left, float section_right, 
+  float section_top, float section_bottom) : 
   _video_width(video_width), _video_height(video_height) {
   //std::cout << "trying to create a window" << std::endl;
 
@@ -105,7 +105,7 @@ GLWindow::GLWindow(int video_width, int video_height,
   glutInitDisplayMode(GLUT_RGB);
   glutInitWindowSize(video_width,video_height); // width=400pixels height=500pixels
 
-  id = glutCreateWindow("GLV");  // create window
+  id = glutCreateWindow(window_name.c_str());  // create window
 
   // Initialise glew
   glewExperimental = GL_TRUE; //needed as it is old!
@@ -197,6 +197,9 @@ GLWindow::GLWindow(int video_width, int video_height,
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
   //std::cout << "window created\n";
 }
+
+GLWindow::GLWindow(int video_width, int video_height, WindowConfig w) : 
+  GLWindow(video_width, video_height, w.name, w.x_begin, w.x_end, w.y_begin, w.y_end) {}
 
 GLWindow::~GLWindow() {
   glDeleteTextures(1, &tex);
@@ -293,10 +296,22 @@ Renderer::Renderer(Decoder &dec) : _dec(dec) {
   glutInit(&argc, argv);  // initialize GLUT system
 
   //create OpenGL windows with video and section sizes
-  for (auto & c : read_config()) {
+  /*for (auto & c : read_config()) {
     _windows.push_back(GLWindow
       (_dec.get_width(), _dec.get_height(),
       c.sec_top, c.sec_bot, c.sec_left, c.sec_right));
+  }*/
+  _windows.push_back(GLWindow(_dec.get_width(), _dec.get_height(),"GLV",0,1,0,1));
+}
+
+Renderer::Renderer(Decoder &dec, const std::vector<WindowConfig> & windows) : _dec(dec) {
+  current_renderer = this;
+  int argc = 1;
+  char* argv[] = {"egal"};
+  glutInit(&argc, argv);
+
+  for (auto & w : windows) {
+    _windows.push_back(GLWindow(_dec.get_width(), _dec.get_height(), w));
   }
 }
 

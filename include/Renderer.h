@@ -14,6 +14,10 @@
 
 #include "Decoder.h"
 
+struct WindowConfig{
+  std::string name;
+  float x_begin, x_end, y_begin, y_end;
+};
 
 class GLWindow{
 private:
@@ -39,7 +43,9 @@ private:
   float desired_aspect_ratio;
   bool bound_top, bound_bottom, bound_left, bound_right;
 public:
-  GLWindow(int video_width, int video_height, float section_top, float section_bottom, float section_left, float section_right);
+  GLWindow(int video_width, int video_height, std::string name,
+    float section_top, float section_bottom, float section_left, float section_right);
+  GLWindow(int video_width, int video_height, WindowConfig w);
   ~GLWindow();
 
   int id;
@@ -61,6 +67,7 @@ private:
   //Decoder& _dec;
 public:
   Renderer(Decoder &dec);
+  Renderer(Decoder &dec, const std::vector<WindowConfig> &  windows);
   ~Renderer();
 
   void run();
