@@ -33,9 +33,6 @@ GLVconfig read_config(std::string filename) {
     wc.y_begin = s.second.get<float>("y_begin");
     wc.y_end = s.second.get<float>("y_end");
     
-    std::cout << "second: " << s.second.get<std::string>("<xmlattr>.name")<< '\n';
-    std::cout << "x_begin: " << s.second.get<float>("x_begin");
-    std::cout << "x_end: " << s.second.get<float>("x_end");
     conf.windows.push_back(wc);
   }
 

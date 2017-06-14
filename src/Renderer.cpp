@@ -30,7 +30,6 @@ void redraw_global() {
   if (current_renderer->_dec.done) {
     glutLeaveMainLoop();
   }
-  //std::cout << "drawing\n";
   std::vector<uint8_t> vf = current_renderer->_dec.get_video_frame().data;
 
   if (vf.size() == 0) {return;}
@@ -63,7 +62,6 @@ void keyboard_global(unsigned char key, int x, int y) {
   if( key == 'q' || key == 27 ) {
     current_renderer->_dec.stop();
     glutLeaveMainLoop();
-    std::cout << "eskappe!\n";
   } else if (key == 'F') {
     glutFullScreen();
   } else if (key == 'f') {
@@ -122,7 +120,6 @@ GLWindow::GLWindow(int video_width, int video_height, std::string window_name,
   glClearColor(0.0,0.0,0.0,0.0);  // set background to black
   glutDisplayFunc(redraw_global); // set window's display callback
   glutIdleFunc(redraw_global);
-  //glutIdleFunc(std::bind(&Renderer::redraw, this));
   glutKeyboardFunc(keyboard_global); // set window's key callback
 
   // Set closing behaviour: If we leave the mainloop 
@@ -211,7 +208,6 @@ GLWindow::~GLWindow() {
   glDeleteBuffers(1, &ebo);
   glDeleteBuffers(1, &vbo);
   glDeleteVertexArrays(1, &vao);
-  //std::cout << "window destroyed\n";
 }
 
 void GLWindow::update_section() {
@@ -222,8 +218,6 @@ void GLWindow::update_section() {
                       static_cast<double>(window_height);
 
   if (current_ap > desired_aspect_ratio) {
-    //std::cout << "window is too wide\n";
-
     //coordinates go from -1 to 1
     float width_ratio =
       2*window_height * desired_aspect_ratio / window_width;
@@ -256,7 +250,6 @@ void GLWindow::update_section() {
     vertices[15] = -1;
     vertices[22] = -1;
   } else {
-    //std::cout << "window is too narrow\n";
     float height_ratio = 2*window_width / desired_aspect_ratio
                          / window_height;
     
@@ -295,12 +288,6 @@ Renderer::Renderer(Decoder &dec) : _dec(dec) {
   char* argv[] = {"egal"};
   glutInit(&argc, argv);  // initialize GLUT system
 
-  //create OpenGL windows with video and section sizes
-  /*for (auto & c : read_config()) {
-    _windows.push_back(GLWindow
-      (_dec.get_width(), _dec.get_height(),
-      c.sec_top, c.sec_bot, c.sec_left, c.sec_right));
-  }*/
   _windows.push_back(GLWindow(_dec.get_width(), _dec.get_height(),"GLV",0,1,0,1));
 }
 
@@ -336,37 +323,6 @@ std::vector<std::string> split_string
   return result;
 }
 
-std::vector<Config> Renderer::read_config() {
-  std::vector<Config> result;
-  std::ifstream is("config.cfg");
-  std::string line;
-
-  while (!is.eof()) {
-    
-    //read a line
-    std::getline(is, line);
-    //skip comment lines
-    if (line[0] != '#') {
-
-      auto v = split_string(line, ":");
-      if (v.size() != 4) {
-        std::cerr << "ERROR: wrong number of parameters in line "
-          << line << '\n';
-      } else {
-        Config c;
-        c.sec_top   = std::stof(v[0]);
-        c.sec_bot   = std::stof(v[1]);
-        c.sec_left  = std::stof(v[2]);
-        c.sec_right = std::stof(v[3]);
-        result.push_back(c);
-      }
-    }
-  }
-  
-  std::cout << "Number of Windows: " << result.size() << '\n';
-
-  return result;
-}
 
 void Renderer::run() {
   glutMainLoop();

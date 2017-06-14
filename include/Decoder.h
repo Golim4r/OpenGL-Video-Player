@@ -68,7 +68,6 @@ public:
     while (!_occupied[_read_position]) { 
       //std::cout << "cant read!\n";
       if (_done) {
-        std::cout << "stopped, returning default\n";
         temp = T(); 
         return temp; 
       }
@@ -156,8 +155,8 @@ public:
   const int & get_height();
   const double & get_aspect_ratio();
 
-  const int & get_sample_rate();
-  const int & get_channels();
+  int get_sample_rate();
+  int get_channels();
 };
 
 #endif

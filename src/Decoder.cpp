@@ -14,7 +14,6 @@ Decoder::Decoder(std::string filename,
   currentAudioStream(audio_stream)
 {
   try {
-    std::cout << "opening file " << filename << std::endl;
     av_register_all();
   
     // Open video file
@@ -30,13 +29,12 @@ Decoder::Decoder(std::string filename,
     // Dump information about file onto standard error
     av_dump_format(pFormatCtx, 0, filename.c_str(), 0);
   
-    // Find the first video stream
+    // Find the media streams
     videoStream = -1;
     
     for(int i=0; i<pFormatCtx->nb_streams; i++) {
       if (pFormatCtx->streams[i]->codec->codec_type==AVMEDIA_TYPE_VIDEO) {
         videoStream = i;
-        //break;
       }
       if (pFormatCtx->streams[i]->codec->codec_type == AVMEDIA_TYPE_AUDIO) {
         audioStreams.push_back(i);
@@ -46,7 +44,10 @@ Decoder::Decoder(std::string filename,
       throw 2;
     }
 
-    if (audioStreams.size() != 0) {
+    //if no audio stream is present, put -1 as stream index
+    if (audioStreams.size() == 0) { audioStreams.push_back(-1); }
+
+    if (audioStreams[0] != -1) {
       if (currentAudioStream >= audioStreams.size()) { currentAudioStream = 0; }
 
       aCodecCtx = pFormatCtx->streams[audioStreams[currentAudioStream]]->codec;
@@ -54,29 +55,26 @@ Decoder::Decoder(std::string filename,
 	  
       aCodecCtx->codec = avcodec_find_decoder(aCodecCtx->codec_id);
       if (aCodecCtx->codec == NULL) {
-        std::cout << "Couldn't find a proper audio decoder" << std::endl;
         throw 7;
-        //return 1;
       }
       else if (avcodec_open2(aCodecCtx, aCodecCtx->codec, NULL) != 0) {
-        std::cout << "Couldn't open the context with the decoder" << std::endl;
         throw 8;
       }
 
-      //std::cout << "This stream has " << aCodecCtx->channels << 
-        //" channels and a sample rate of " << aCodecCtx->sample_rate << 
-        //"Hz" << std::endl;
-      //std::cout << "The data is in the format " << 
-        //av_get_sample_fmt_name(aCodecCtx->sample_fmt) << std::endl;
-    } else {
-      std::cout << "has no audio stream\n";
+      atim.set_interval(av_q2d(pFormatCtx->streams[audioStreams[currentAudioStream]]->time_base)*1000);
+    
+      swr_ctx = swr_alloc_set_opts(NULL, aCodecCtx->channel_layout,
+                  AV_SAMPLE_FMT_U8, aCodecCtx->sample_rate,
+                  aCodecCtx->channel_layout, aCodecCtx->sample_fmt,
+                  aCodecCtx->sample_rate, 0, NULL);
+	    swr_init(swr_ctx);
     }
   
     // Get a pointer to the codec context for the video stream
     pCodecCtxOrig=pFormatCtx->streams[videoStream]->codec;
     
     vtim.set_interval(av_q2d(pFormatCtx->streams[videoStream]->time_base)*1000);
-    atim.set_interval(av_q2d(pFormatCtx->streams[audioStreams[currentAudioStream]]->time_base)*1000);
+    //std::cout << "video interval: " << av_q2d(pFormatCtx->streams[videoStream]->time_base)*1000 << '\n';
 
     // Find the decoder for the video stream
     pCodec=avcodec_find_decoder(pCodecCtxOrig->codec_id);
@@ -118,12 +116,6 @@ Decoder::Decoder(std::string filename,
                   pCodecCtx->height, PIX_FMT_RGB24, SWS_BILINEAR,
                   NULL, NULL, NULL);
 
-    swr_ctx = swr_alloc_set_opts(NULL, aCodecCtx->channel_layout,
-                  AV_SAMPLE_FMT_U8, aCodecCtx->sample_rate,
-                  aCodecCtx->channel_layout, aCodecCtx->sample_fmt,
-                  aCodecCtx->sample_rate, 0, NULL);
-	  swr_init(swr_ctx);
-    
   } catch (int e) {
     std::vector<std::string> error_strings = 
     { "Error opening file\n",
@@ -135,9 +127,7 @@ Decoder::Decoder(std::string filename,
       "Couldn't allocate pFrameRGB\n",
       "Couldn't find a proper audio decoder",
       "Couldn't open the context with the decoder"};
-    std::cerr << "EXCEPTION:\n" << error_strings[e];
-    
-    //todo cleanup
+    std::cerr << "EXCEPTION:\n" << error_strings[e];    
   }
 }
 
@@ -164,11 +154,8 @@ Decoder::~Decoder() {
 }
  
 void Decoder::run() {
-  //std::cout << "Decoder trying to run!\n";
-  //done = false;
   vtim.set_start_now();
   atim.set_start(vtim.get_start());
-  size_t ctr = 0;
   while(!done) {
     while(read_frame() && !done) { 
 
@@ -182,12 +169,9 @@ void Decoder::run() {
 }
 
 void Decoder::stop() {
-  //done = true;
-  //std::cout << "trying to stop decoder\n";
   aframes.stop();
   vframes.stop();
   done = true;
-  //std::cout << "decoder stopped\n";
 }
  
 void Decoder::seek(const size_t & seconds) {
@@ -204,13 +188,14 @@ void Decoder::seek() {
 
   av_seek_frame(pFormatCtx, videoStream, seek_target, AVSEEK_FLAG_BACKWARD);
   
-  avcodec_flush_buffers(pCodecCtx);
-  avcodec_flush_buffers(aCodecCtx);
-
-  //std::this_thread::sleep_for(std::chrono::seconds(1));
-  aframes.clear();
-  atim.add_offset(-_seek_seconds);
   
+  if (audioStreams[0] != -1) {
+    avcodec_flush_buffers(aCodecCtx);
+    aframes.clear();
+    atim.add_offset(-_seek_seconds);
+  }
+  
+  avcodec_flush_buffers(pCodecCtx);
   vframes.clear();
   vtim.add_offset(-_seek_seconds);
 
@@ -232,7 +217,6 @@ void Decoder::previous_audio_stream() {
 */
 
 void Decoder::SaveFrame(int iFrame) {
-  std::cout << "saving frame " << iFrame << '\n';
   FILE *pFile;
   char szFilename[32];
   int  y;
@@ -267,12 +251,8 @@ bool Decoder::read_frame() {
           pFrame->linesize, 0, pCodecCtx->height,
           pFrameRGB->data, pFrameRGB->linesize);
 
-        //std::cout << "putting videoframe " << pFrame->pkt_pts << "\n";
         vframes.put(MediaFrame(buffer, numBytes, pFrame->pkt_pts));
         current_video_pts = pFrame->pkt_pts;
-      }
-      else {
-        //std::cout << "no finished frame" << std::endl;
       }
     }
     else if (packet.stream_index == audioStreams[currentAudioStream] && _decodeAudio) {
@@ -325,16 +305,10 @@ MediaFrame Decoder::get_video_frame() {
 
   videoframe = vframes.get();
 
-  //video_time_stamps.get();
-  //video_frames.get();
-
-  //std::cout << "vts: " << video_ts << '\n';
   if (_sync_local) {
-    std::cout<< "vtim: " << vtim.wait(videoframe.pts) << '\n';
     vtim.wait(videoframe.pts);
   }
-
-  //std::cout << "get video frame " << videoframe.pts << " \n";
+  
   return videoframe;
 }
 
@@ -347,12 +321,9 @@ MediaFrame Decoder::get_audio_frame() {
   
   if (_sync_local && atim.wait(audioframe.pts)<0) {
     audioframe.data.resize(audioframe.data.size()-10);
-    //std::cout << "audio too late\n";
     return audioframe;
-    //return MediaFrame();
   }
 
-  //std::cout << "get audio frame "<<audioframe.pts<<"\n";
   return audioframe;
 }
 
@@ -368,10 +339,12 @@ const double & Decoder::get_aspect_ratio() {
   return aspect_ratio;
 }
 
-const int & Decoder::get_sample_rate() {
+int Decoder::get_sample_rate() {
+  if (audioStreams[0] == -1) { return 44100; }
   return aCodecCtx->sample_rate;
 }
 
-const int & Decoder::get_channels() {
+int Decoder::get_channels() {
+  if (audioStreams[0] == -1) { return 2; }
   return aCodecCtx->channels;
 }

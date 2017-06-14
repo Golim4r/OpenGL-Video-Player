@@ -6,6 +6,7 @@
 #include <synchObject.h>
 
 #include "Pulseplayer.h"
+#include "Renderer.h"
 #include "Decoder.h"
 #include "JUtils.h"
 
@@ -20,30 +21,37 @@ void audiothread(Decoder & d) {
   }
 }
 
-std::vector<std::pair<std::string,std::string>> read_config(const std::string & filename) {
+struct GLVconfig {
+  bool decode_audio, decode_video, sync_internally;
+  int audiotrack;
+  std::vector<WindowConfig> windows;
+};
+
+GLVconfig read_config(std::string filename) {
+  GLVconfig conf;
   boost::property_tree::ptree tree;
   boost::property_tree::read_xml(filename, tree);
 
-  std::vector<std::pair<std::string,std::string>> config;
-  std::vector<std::string> names, sections;
+  conf.decode_audio = tree.get<bool>("play_audio");
+  conf.decode_video = tree.get<bool>("play_video");
+  conf.sync_internally = tree.get<bool>("sync_internally");
+  conf.audiotrack = tree.get<int>("audiotrack");
 
-  for( auto & p : tree.get_child("names")) {
-    names.push_back(p.second.data());
+  for (auto & s : tree.get_child("screens")) {
+    WindowConfig wc;
+    wc.name = s.second.get<std::string>("<xmlattr>.name");
+    wc.x_begin = s.second.get<float>("x_begin");
+    wc.x_end   = s.second.get<float>("x_end");
+    wc.y_begin = s.second.get<float>("y_begin");
+    wc.y_end = s.second.get<float>("y_end");
+    
+    std::cout << "second: " << s.second.get<std::string>("<xmlattr>.name")<< '\n';
+    std::cout << "x_begin: " << s.second.get<float>("x_begin");
+    std::cout << "x_end: " << s.second.get<float>("x_end");
+    conf.windows.push_back(wc);
   }
-
-  for (auto & p : tree.get_child("sections")) {
-    sections.push_back(p.second.data());
-  }
-
-  if (sections.size() != names.size()) {
-    return config;
-  }
-
-  for (int i=0; i<names.size(); ++i) {
-    config.push_back(std::make_pair(names[i], sections[i]));
-  }
-
-  return config;
+  
+  return conf;
 }
 
 int main(int argc, char** argv) {
@@ -51,9 +59,7 @@ int main(int argc, char** argv) {
   //std::string file("default.cfg");
   //a.writeDefault(file);
 
-  for (auto & c : read_config("sections.conf")) {
-    std::cout << c.first << ": " << c.second << '\n';
-  }
+ auto c = read_config("glv.conf");   
 
   //config file
   std::string cfile = argv[1];
@@ -61,7 +67,7 @@ int main(int argc, char** argv) {
   //path to media file
   std::string mediafile = 
     argc > 2 ? argv[2] : 
-	  "/home/di73yad/opengl_videoplayer/media/Max.mp4";
+	  "media/Max.mp4";
   
   //current video frame
   MediaFrame current_video_frame;
@@ -76,18 +82,27 @@ int main(int argc, char** argv) {
   std::thread dt(&Decoder::run, &d);
   std::thread at(audiothread, std::ref(d));
 
+  std::cout << "noch da -1\n";
+
   //create the synch server  
   synchlib::renderServer server(cfile, argc, argv);
 
+  std::cout << "noch da?0\n";
+  
   //timestamp
   std::shared_ptr<synchlib::SynchObject<size_t>> video_time_stamp = 
-  synchlib::SynchObject<size_t>::create();
+    synchlib::SynchObject<size_t>::create();
 
+
+  std::cout << "noch da?1\n";
   server.addSynchObject(video_time_stamp,synchlib::renderServer::SENDER,0);
 
+  std::cout << "noch da?2\n";
   server.init(true);
+  std::cout << "noch da?3\n";
   server.startSynching();
 
+  std::cout << "noch da? final\n";
   while (!d.done) {
     //current_video_frame = d.get_video_frame();
     //video_time_stamp->setData(current_video_frame.pts);

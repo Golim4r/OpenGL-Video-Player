@@ -25,7 +25,6 @@ private:
   GLuint vao, vbo, tex, ebo, vertexShader, fragmentShader, shaderProgram;
 	GLint posAttrib, colAttrib, texAttrib;
   
-  //std::vector<GLfloat> vertices = {
 
   GLfloat vertices[28] = {
   //  Position      Color             Texcoords
@@ -63,8 +62,6 @@ class Renderer {
 private:
   void keyboard(unsigned char key, int x, int y);
 
-  std::vector<Config> read_config();
-  //Decoder& _dec;
 public:
   Renderer(Decoder &dec);
   Renderer(Decoder &dec, const std::vector<WindowConfig> &  windows);
