@@ -14,7 +14,10 @@
 
 #include "Decoder.h"
 
+
 struct WindowConfig{
+  WindowConfig(std::string w_name, float xbegin, float xend, float ybegin, float yend):
+    name(w_name), x_begin(xbegin), x_end(xend), y_begin(ybegin), y_end(yend) {}
   std::string name;
   float x_begin, x_end, y_begin, y_end;
 };

@@ -13,13 +13,8 @@
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/xml_parser.hpp>
 
-void audiothread(Decoder & d) {
-  Pulseplayer pp(d.get_sample_rate(), d.get_channels());
-  
-  while(!d.done) {
-    pp.play(d.get_audio_frame().data);
-  }
-}
+std::atomic<size_t> global_seek;
+std::atomic<int> global_control;
 
 struct GLVconfig {
   bool decode_audio, decode_video, sync_internally;
@@ -38,12 +33,12 @@ GLVconfig read_config(std::string filename) {
   conf.audiotrack = tree.get<int>("audiotrack");
 
   for (auto & s : tree.get_child("screens")) {
-    WindowConfig wc;
-    wc.name = s.second.get<std::string>("<xmlattr>.name");
-    wc.x_begin = s.second.get<float>("x_begin");
-    wc.x_end   = s.second.get<float>("x_end");
-    wc.y_begin = s.second.get<float>("y_begin");
-    wc.y_end = s.second.get<float>("y_end");
+    WindowConfig wc(
+    s.second.get<std::string>("<xmlattr>.name"),
+    s.second.get<float>("x_begin"),
+    s.second.get<float>("x_end"),
+    s.second.get<float>("y_begin"),
+    s.second.get<float>("y_end"));
     
     std::cout << "second: " << s.second.get<std::string>("<xmlattr>.name")<< '\n';
     std::cout << "x_begin: " << s.second.get<float>("x_begin");
@@ -54,65 +49,117 @@ GLVconfig read_config(std::string filename) {
   return conf;
 }
 
-int main(int argc, char** argv) {
-  //synchlib::caveConfig a;
-  //std::string file("default.cfg");
-  //a.writeDefault(file);
+void audiothread(Decoder & d) {
+  Pulseplayer pp(d.get_sample_rate(), d.get_channels());
+  
+  while(!d.done) {
+    pp.play(d.get_audio_frame().data);
+  }
+}
 
- auto c = read_config("glv.conf");   
+void keyboard(unsigned char key, int x, int y) {
+  std::cout << "keypress!\n";
+  switch (key) {
+    case 27:
+    case 'q':
+      global_control = -1;
+      glutLeaveMainLoop();
+      break;
+    case 's':
+      global_seek = 10;
+      break;
+    case 'S':
+      global_seek = -10;
+      break;
+  }
+}
+
+int main(int argc, char** argv) {
+  global_seek = 0;
+  global_control = 0;
+
+  auto c = read_config("glv.conf");   
 
   //config file
   std::string cfile = argv[1];
 
   //path to media file
-  std::string mediafile = 
-    argc > 2 ? argv[2] : 
-	  "media/Max.mp4";
-  
+  std::string mediafile;
+  if (argc > 2) {
+    mediafile = argv[2];
+  } else {
+    std::cerr << "ERROR: no media file specified\n";
+    return -1;
+  }
+
   //current video frame
   MediaFrame current_video_frame;
 
   //create the decoder with video, audio and internal synching
   Decoder d(mediafile);
 
-  //create the renderer
-  //Renderer r(d);
+  glutInit(&argc, argv);
+  glutInitDisplayMode(GLUT_RGB);
+  glutInitWindowSize(200,200);
+  glutCreateWindow("Control Window");
+
+  glClearColor(0,0,0,0);
+  glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+  glutKeyboardFunc(keyboard);
+
+  glutSetOption(GLUT_ACTION_ON_WINDOW_CLOSE,GLUT_ACTION_GLUTMAINLOOP_RETURNS);
 
   //start the decoder and audio threads
   std::thread dt(&Decoder::run, &d);
   std::thread at(audiothread, std::ref(d));
 
-  std::cout << "noch da -1\n";
 
   //create the synch server  
   synchlib::renderServer server(cfile, argc, argv);
-
-  std::cout << "noch da?0\n";
   
   //timestamp
   std::shared_ptr<synchlib::SynchObject<size_t>> video_time_stamp = 
     synchlib::SynchObject<size_t>::create();
-
-
-  std::cout << "noch da?1\n";
   server.addSynchObject(video_time_stamp,synchlib::renderServer::SENDER,0);
 
-  std::cout << "noch da?2\n";
+  std::shared_ptr<synchlib::SynchObject<size_t>> seek_time =
+    synchlib::SynchObject<size_t>::create();
+  server.addSynchObject(seek_time, synchlib::renderServer::SENDER,0);
+
+  std::shared_ptr<synchlib::SynchObject<int>> control =
+    synchlib::SynchObject<int>::create();
+  server.addSynchObject(control, synchlib::renderServer::SENDER,0);
+
   server.init(true);
-  std::cout << "noch da?3\n";
   server.startSynching();
 
-  std::cout << "noch da? final\n";
-  while (!d.done) {
-    //current_video_frame = d.get_video_frame();
-    //video_time_stamp->setData(current_video_frame.pts);
-    video_time_stamp->setData(d.get_video_frame().pts);
-    video_time_stamp->send();
+  std::thread syncer([&]() {
+    while (!d.done) {
+      if (global_seek != 0) {
+        d.seek(global_seek);
+        seek_time->setData(global_seek);
+        seek_time->send();
+        global_seek = 0;
+      }
+      
+      if (global_control == -1) {
+        break;
+      }
 
-  }
+      control->setData(global_control);
+      control->send();
 
-  server.stopSynching();
+      video_time_stamp->setData(d.get_video_frame().pts);
+      video_time_stamp->send();
+    }
+  });
+
+  glutMainLoop();
+  d.stop();
 
   dt.join();
   at.join();
+  syncer.join();
+
+  server.stopSynching();
 }
