@@ -170,8 +170,8 @@ void Decoder::run() {
 }
 
 void Decoder::stop() {
-  aframes.stop();
-  vframes.stop();
+  //aframes.stop();
+  //vframes.stop();
   done = true;
 }
  
@@ -182,6 +182,10 @@ void Decoder::seek(const size_t & seconds) {
 void Decoder::seek() {
   _seeking = true;
   std::cout << "now seeking...";
+  std::cout << "aframes read position: " << aframes.get_read_position() << '\n';
+  std::cout << "aframes write position: " << aframes.get_write_position() << '\n';
+  std::cout << "vframes read position: " << vframes.get_read_position() << '\n';
+  std::cout << "vframes write position: " << vframes.get_write_position() << '\n';
   std::this_thread::sleep_for(std::chrono::seconds(3));
   size_t seek_target = current_video_pts + 
     (_seek_seconds / av_q2d(pFormatCtx->streams[videoStream]->time_base));
@@ -203,6 +207,11 @@ void Decoder::seek() {
   vtim.add_offset(-_seek_seconds);
 
   std::cout << "done\n";
+  std::cout << "aframes read position: " << aframes.get_read_position() << '\n';
+  std::cout << "aframes write position: " << aframes.get_write_position() << '\n';
+  std::cout << "vframes read position: " << vframes.get_read_position() << '\n';
+  std::cout << "vframes write position: " << vframes.get_write_position() << '\n';
+  std::this_thread::sleep_for(std::chrono::seconds(3));
   _seeking = false;
 }
 
@@ -255,7 +264,8 @@ bool Decoder::read_frame() {
           pFrame->linesize, 0, pCodecCtx->height,
           pFrameRGB->data, pFrameRGB->linesize);
 
-        vframes.put(MediaFrame(buffer, numBytes, pFrame->pkt_pts));
+        while(!vframes.put(MediaFrame(buffer, numBytes, pFrame->pkt_pts))
+            || done) {}
         current_video_pts = pFrame->pkt_pts;
       }
     }
@@ -283,7 +293,8 @@ bool Decoder::read_frame() {
             in,
             aFrame->nb_samples);
 
-          aframes.put(MediaFrame(out, ret*aCodecCtx->channels, aFrame->pkt_pts));
+          while(!aframes.put(MediaFrame(out, ret*aCodecCtx->channels, aFrame->pkt_pts))
+              || done) {}
 
           free(out);
         }
@@ -308,7 +319,9 @@ MediaFrame Decoder::get_video_frame() {
     return MediaFrame();
   }
 
-  videoframe = vframes.get();
+  while(!vframes.get(videoframe)) {
+    if (done) { return MediaFrame(); }
+  }
 
   if (_sync_local) {
     vtim.wait(videoframe.pts);
@@ -323,7 +336,9 @@ MediaFrame Decoder::get_audio_frame() {
     return MediaFrame();
   }
   
-  audioframe = aframes.get();
+  while (!aframes.get(audioframe)) {
+    if (done) { return MediaFrame(); }
+  }//audioframe = aframes.get();
   
   if (_sync_local && atim.wait(audioframe.pts)<0) {
     audioframe.data.resize(audioframe.data.size()-10);

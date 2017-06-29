@@ -40,41 +40,36 @@ private:
   std::vector<T> _data;
   std::vector<std::atomic<bool>> _occupied;
   int _size, _read_position, _write_position;
-  T temp;
-  std::atomic<bool> _done;
 public:
   Buffer(int size) : 
     _data(size), 
     _occupied(size), 
     _size(size), 
     _read_position(0), 
-    _write_position(0),
-    _done(false) {}
+    _write_position(0) {}
 
-  void put(T elem) {
-    while (_occupied[_write_position]) {
+  bool put(T elem) {
+    if (_occupied[_write_position]) {
       std::cout << "cant write at " << _write_position << "\n";
-      if (_done) { return; }
+      return false;
     }
     //std::cout << "writing at " << _write_position << '\n';
     _data[_write_position] = std::move(elem);
     _occupied[_write_position] = true;
     _write_position = ++_write_position % _size;
+    return true;
   }
 
-  const T & get() {
-    while (!_occupied[_read_position]) { 
+  bool get(T & copy_to) {
+    if (!_occupied[_read_position]) { 
       std::cout << "cant read at"<< _read_position << '\n';
-      if (_done) {
-        temp = T(); 
-        return temp; 
-      }
+      return false;
     }
     //std::cout << "reading at " << _read_position << '\n';
-    temp = std::move(_data[_read_position]);
+    copy_to = std::move(_data[_read_position]);
     _occupied[_read_position] = false;
     _read_position = ++_read_position % _size;
-    return temp;
+    return true;
   }
 
   void clear() {
@@ -82,17 +77,16 @@ public:
       _occupied[i] = false;
       _data[i] = T();
     }
-    temp = T();
     _read_position = 0;
     _write_position = 0;
   }
 
-  void stop() {
-    _done = true;
+  const int & get_read_position() {
+    return _read_position;
   }
 
-  void resume() {
-    _done = false;
+  const int & get_write_position() {
+    return _write_position;
   }
 };
 
