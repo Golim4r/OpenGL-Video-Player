@@ -52,27 +52,25 @@ public:
     _done(false) {}
 
   void put(T elem) {
-    //todo: not busy wait
     while (_occupied[_write_position]) {
-      //std::cout << "cant write\n";
+      std::cout << "cant write at " << _write_position << "\n";
       if (_done) { return; }
-      //return;
     }
+    //std::cout << "writing at " << _write_position << '\n';
     _data[_write_position] = std::move(elem);
     _occupied[_write_position] = true;
     _write_position = ++_write_position % _size;
   }
 
   const T & get() {
-    //todo: not busy waitasdasd
     while (!_occupied[_read_position]) { 
-      //std::cout << "cant read!\n";
+      std::cout << "cant read at"<< _read_position << '\n';
       if (_done) {
         temp = T(); 
         return temp; 
       }
-      //return temp;
     }
+    //std::cout << "reading at " << _read_position << '\n';
     temp = std::move(_data[_read_position]);
     _occupied[_read_position] = false;
     _read_position = ++_read_position % _size;
@@ -91,6 +89,10 @@ public:
 
   void stop() {
     _done = true;
+  }
+
+  void resume() {
+    _done = false;
   }
 };
 
@@ -117,6 +119,8 @@ private:
   std::atomic<int> currentAudioStream;
 
   std::atomic<bool> _sync_local;
+
+  std::atomic<bool> _seeking;
 
   MediaFrame videoframe;
   Buffer<MediaFrame> vframes;

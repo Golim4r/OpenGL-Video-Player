@@ -11,7 +11,8 @@ Decoder::Decoder(std::string filename,
   _sync_local(sync_local),
   _seek_seconds(0),
   current_video_pts(0),
-  currentAudioStream(audio_stream)
+  currentAudioStream(audio_stream),
+  _seeking(false)
 {
   try {
     av_register_all();
@@ -179,7 +180,9 @@ void Decoder::seek(const size_t & seconds) {
 }
 
 void Decoder::seek() {
+  _seeking = true;
   std::cout << "now seeking...";
+  std::this_thread::sleep_for(std::chrono::seconds(3));
   size_t seek_target = current_video_pts + 
     (_seek_seconds / av_q2d(pFormatCtx->streams[videoStream]->time_base));
 
@@ -200,6 +203,7 @@ void Decoder::seek() {
   vtim.add_offset(-_seek_seconds);
 
   std::cout << "done\n";
+  _seeking = false;
 }
 
 
@@ -299,6 +303,7 @@ bool Decoder::read_frame() {
 }
 
 MediaFrame Decoder::get_video_frame() {
+  while(_seeking){}
   if (!_decodeVideo) {
     return MediaFrame();
   }
@@ -313,6 +318,7 @@ MediaFrame Decoder::get_video_frame() {
 }
 
 MediaFrame Decoder::get_audio_frame() {
+  while(_seeking){}
   if (!_decodeAudio) {
     return MediaFrame();
   }
