@@ -50,7 +50,7 @@ public:
 
   bool put(T elem) {
     if (_occupied[_write_position]) {
-      std::cout << "cant write at " << _write_position << "\n";
+      //std::cout << "cant write at " << _write_position << "\n";
       return false;
     }
     //std::cout << "writing at " << _write_position << '\n';
@@ -62,7 +62,7 @@ public:
 
   bool get(T & copy_to) {
     if (!_occupied[_read_position]) { 
-      std::cout << "cant read at"<< _read_position << '\n';
+      //std::cout << "cant read at"<< _read_position << '\n';
       return false;
     }
     //std::cout << "reading at " << _read_position << '\n';
@@ -142,7 +142,7 @@ public:
 
   void run();
   void stop();  
-  void seek(const size_t & video_frame_pts);
+  void seek(const int & video_frame_pts);
   //void next_audio_stream();
   //void previous_audio_stream();
 

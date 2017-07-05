@@ -175,7 +175,7 @@ void Decoder::stop() {
   done = true;
 }
  
-void Decoder::seek(const size_t & seconds) {
+void Decoder::seek(const int & seconds) {
   _seek_seconds = seconds;
 }
 
