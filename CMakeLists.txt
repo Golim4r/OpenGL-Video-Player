@@ -161,9 +161,9 @@ add_definitions(${project_DEFINITIONS})
 #########################################################
 
 
-add_executable(${PROJECT_NAME} ${SOURCES} ${HEADERS})
-target_link_libraries(${PROJECT_NAME} ${project_LIBRARIES})
-add_executable(${PROJECT_NAME}_server ${SOURCES_SERVER} ${HEADERS_SERVER})
-target_link_libraries(${PROJECT_NAME}_server ${project_LIBRARIES})
+#add_executable(${PROJECT_NAME} ${SOURCES} ${HEADERS})
+#target_link_libraries(${PROJECT_NAME} ${project_LIBRARIES})
+#add_executable(${PROJECT_NAME}_server ${SOURCES_SERVER} ${HEADERS_SERVER})
+#target_link_libraries(${PROJECT_NAME}_server ${project_LIBRARIES})
 add_executable(${PROJECT_NAME}_local ${SOURCES_LOCAL} ${HEADERS_LOCAL})
 target_link_libraries(${PROJECT_NAME}_local ${project_LIBRARIES})

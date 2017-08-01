@@ -157,13 +157,11 @@ Decoder::~Decoder() {
 void Decoder::run() {
   vtim.set_start_now();
   atim.set_start(vtim.get_start());
-  while(!done) {
-    while(read_frame() && !done) { 
 
-      if (_seek_seconds != 0) {
-        seek();
-        _seek_seconds = 0;
-      }
+  while(!done && read_frame()) { 
+    if (_seek_seconds != 0) {
+      seek();
+      _seek_seconds = 0;
     }
   }
   stop();
@@ -264,13 +262,14 @@ bool Decoder::read_frame() {
           pFrame->linesize, 0, pCodecCtx->height,
           pFrameRGB->data, pFrameRGB->linesize);
 
-        while(!vframes.put(MediaFrame(buffer, numBytes, pFrame->pkt_pts))
-            || done) {}
+        while(!vframes.put(MediaFrame(buffer, numBytes, pFrame->pkt_pts))) {
+          if (done) break;
+        }
         current_video_pts = pFrame->pkt_pts;
       }
     }
     else if (packet.stream_index == audioStreams[currentAudioStream] && _decodeAudio) {
-      while (packet.size > 0) {
+      while (packet.size > 0 || done) {
         int gotFrame = 0;
         int result = avcodec_decode_audio4(aCodecCtx, aFrame, &gotFrame, &packet);
         if (result >= 0 && gotFrame) {
@@ -293,9 +292,13 @@ bool Decoder::read_frame() {
             in,
             aFrame->nb_samples);
 
-          while(!aframes.put(MediaFrame(out, ret*aCodecCtx->channels, aFrame->pkt_pts))
-              || done) {}
+          while(!aframes.put(MediaFrame(out, ret*aCodecCtx->channels, aFrame->pkt_pts))) {
+            if (done) break;
+          }
 
+          if (done) {
+            break;
+          }
           free(out);
         }
         else {
@@ -319,7 +322,7 @@ MediaFrame Decoder::get_video_frame() {
     return MediaFrame();
   }
 
-  while(!vframes.get(videoframe)) {
+  while(!vframes.get(videoframe) || done) {
     if (done) { return MediaFrame(); }
   }
 
@@ -336,7 +339,7 @@ MediaFrame Decoder::get_audio_frame() {
     return MediaFrame();
   }
   
-  while (!aframes.get(audioframe)) {
+  while (!aframes.get(audioframe) || done) {
     if (done) { return MediaFrame(); }
   }//audioframe = aframes.get();
   

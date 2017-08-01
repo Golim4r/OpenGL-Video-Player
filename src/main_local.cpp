@@ -36,9 +36,6 @@ GLVconfig read_config(std::string filename) {
     s.second.get<float>("y_begin"),
     s.second.get<float>("y_end"));
     
-    std::cout << "second: " << s.second.get<std::string>("<xmlattr>.name")<< '\n';
-    std::cout << "x_begin: " << s.second.get<float>("x_begin");
-    std::cout << "x_end: " << s.second.get<float>("x_end");
     conf.windows.push_back(wc);
   }
   
@@ -55,11 +52,18 @@ void audiothread(Decoder & d) {
 }
 
 int main(int argc, char *argv[]) {
-  GLVconfig conf = read_config("glv.conf");
+  GLVconfig conf;
+
+  if (argc > 1) {
+    conf = read_config(argv[1]);
+	} else {
+    std::cerr << "ERROR: no config file specified! terminating...\n";
+    return -1;
+  }
 
   std::string filename;  
-  if (argc > 1) {
-    filename = argv[1];
+  if (argc > 2) {
+    filename = argv[2];
 	} else {
     std::cerr << "ERROR: no media file specified! terminating...\n";
     return -1;
