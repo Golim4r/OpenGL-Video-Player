@@ -107,8 +107,10 @@ int main(int argc, char** argv) {
   glutInitWindowSize(200,200);
   glutCreateWindow("Control Window");
 
-  glClearColor(0,0,0,0);
+  glClearColor(0,0,0,1);
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+  glFlush();
+  glSwapBuffers();
   glutKeyboardFunc(keyboard);
 
   glutSetOption(GLUT_ACTION_ON_WINDOW_CLOSE,GLUT_ACTION_GLUTMAINLOOP_RETURNS);
