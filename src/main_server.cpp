@@ -78,19 +78,23 @@ int main(int argc, char** argv) {
   global_seek = 0;
   global_control = 0;
 
-  auto c = read_config("glv.conf");   
 
-  //config file
+  if (argc < 3) {
+    std::cout << "USAGE:\n";
+    std::cout << "parameter 0: [executable]\n";
+    std::cout << "parameter 1: absolute path to synchlib config file\n";
+    std::cout << "parameter 2: absolute path to glv config file\n";
+    std::cout << "parameter 3: absolute path to media file\n";
+  }
+
+  //synchlib config file
   std::string cfile = argv[1];
 
-  //path to media file
-  std::string mediafile;
-  if (argc > 2) {
-    mediafile = argv[2];
-  } else {
-    std::cerr << "ERROR: no media file specified\n";
-    return -1;
-  }
+  //glv config file
+  auto c = read_config(argv[2]);   
+
+  //media file
+  std::string mediafile = argv[3];
 
   //current video frame
   MediaFrame current_video_frame;

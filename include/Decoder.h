@@ -128,7 +128,7 @@ private:
   bool read_frame();
   void seek();
 
-  JTimedIterationManager vtim, atim;
+  J::TimedLoop vtim, atim;
   
   bool _decodeVideo, _decodeAudio;
 public:

@@ -55,16 +55,16 @@ void audiothread(Decoder & d) {
 
 
 int main(int argc, char *argv[]) {
+  std::cout << "argc: " << argc << '\n';
+  for (int i=0; i< argc; ++i) {
+    std::cout << "argv[" << i << "]: " << argv[i] << '\n';
+  }
+  
+  //while (true){}
+  
   std::string cfile = argv[2];
 
-  std::string glv_config_path;
-  if (argc < 5) {
-    std::cout << "WARNING: no glv config specified, trying to read default\n";
-    glv_config_path = "/home/jakob/Documents/workspaces/OpenGL-Video-Player/glv.conf";
-  } else {
-    glv_config_path = argv[5];
-  }
-  auto conf = read_config(glv_config_path);
+  auto conf = read_config(argv[4]);
 
   std::vector<WindowConfig> c;
   std::string own_name = std::string(argv[1]) + "_" + std::string(argv[3]);
@@ -79,7 +79,7 @@ int main(int argc, char *argv[]) {
     return -1;
   }
 
-  std::string mediafile = argv[4];
+  std::string mediafile = argv[5];
 
   //decoder with video, no audio, and no internal synching
   Decoder d(mediafile, true, false, false);
@@ -122,7 +122,7 @@ int main(int argc, char *argv[]) {
   MediaFrame current_video_frame = d.get_video_frame();
   size_t current_pts;
  
-  //r.set_fullscreen();
+  r.set_fullscreen();
  
   int test = 0;
   while (!d.done) {

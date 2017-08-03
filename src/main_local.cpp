@@ -72,12 +72,14 @@ int main(int argc, char *argv[]) {
   Decoder d(filename, conf.decode_video, conf.decode_audio, conf.sync_internally, conf.audiotrack);
   Renderer r(d,conf.windows);
   
-  JDurationManager dm;
+  J::Duration dm;
+  J::Frequency f;
 
   dm.start();
 
   std::thread dt(&Decoder::run, &d);
   std::thread at(audiothread, std::ref(d));
+ 
   r.run();
 
   at.join();

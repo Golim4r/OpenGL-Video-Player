@@ -179,14 +179,12 @@ void Decoder::seek(const int & seconds) {
 
 void Decoder::seek() {
   _seeking = true;
-  std::cout << "now seeking...";
-  std::cout << "aframes read position: " << aframes.get_read_position() << '\n';
-  std::cout << "aframes write position: " << aframes.get_write_position() << '\n';
-  std::cout << "vframes read position: " << vframes.get_read_position() << '\n';
-  std::cout << "vframes write position: " << vframes.get_write_position() << '\n';
-  std::this_thread::sleep_for(std::chrono::seconds(3));
-  size_t seek_target = current_video_pts + 
+  
+  int seek_target = current_video_pts + 
     (_seek_seconds / av_q2d(pFormatCtx->streams[videoStream]->time_base));
+
+
+  seek_target = std::max(seek_target, 0);
 
   av_free_packet(&packet);
   av_freep(&packet);
@@ -204,12 +202,11 @@ void Decoder::seek() {
   vframes.clear();
   vtim.add_offset(-_seek_seconds);
 
-  std::cout << "done\n";
-  std::cout << "aframes read position: " << aframes.get_read_position() << '\n';
-  std::cout << "aframes write position: " << aframes.get_write_position() << '\n';
-  std::cout << "vframes read position: " << vframes.get_read_position() << '\n';
-  std::cout << "vframes write position: " << vframes.get_write_position() << '\n';
-  std::this_thread::sleep_for(std::chrono::seconds(3));
+  if (seek_target == 0) {
+    vtim.set_start_now();
+    atim.set_start(vtim.get_start());
+  }
+
   _seeking = false;
 }
 
@@ -341,11 +338,11 @@ MediaFrame Decoder::get_audio_frame() {
   
   while (!aframes.get(audioframe) || done) {
     if (done) { return MediaFrame(); }
-  }//audioframe = aframes.get();
+  }
   
+  //if too late, skip this audioframe (return an empty frame)
   if (_sync_local && atim.wait(audioframe.pts)<0) {
-    audioframe.data.resize(audioframe.data.size()-10);
-    return audioframe;
+    return MediaFrame();
   }
 
   return audioframe;
