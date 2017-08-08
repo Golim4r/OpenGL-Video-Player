@@ -324,7 +324,10 @@ MediaFrame Decoder::get_video_frame() {
   }
 
   if (_sync_local) {
-    vtim.wait(videoframe.pts);
+    if (vtim.wait(videoframe.pts)<0) {
+      //std::cout << "video too late, throwing away frame\n";
+      return MediaFrame(); 
+    }
   }
   
   return videoframe;
@@ -342,6 +345,7 @@ MediaFrame Decoder::get_audio_frame() {
   
   //if too late, skip this audioframe (return an empty frame)
   if (_sync_local && atim.wait(audioframe.pts)<0) {
+    //std::cout << "audio too late, throwing away frame\n";
     return MediaFrame();
   }
 
